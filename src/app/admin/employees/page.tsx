@@ -59,12 +59,12 @@ export default function EmployeesPage() {
   const someChecked = paginated.some(e=>selected.has(e._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of selected) { try { await apiCall('PATCH',`/users/${id}`,{status}); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('PATCH',`/users/${id}`,{status}); } catch {} }
     await fetchEmployees(); setSelected(new Set()); showToast(`${selected.size} employee(s) set to ${status}`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Remove ${selected.size} employee(s)?`)) return;
-    for (const id of selected) { try { await apiCall('DELETE',`/users/${id}`); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('DELETE',`/users/${id}`); } catch {} }
     await fetchEmployees(); setSelected(new Set()); showToast('Removed.');
   };
 

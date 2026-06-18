@@ -44,7 +44,7 @@ export default function AdminUsersPage() {
 
   const bulkRemove = async () => {
     if (!confirm(`Remove ${selected.size} admin(s)?`)) return;
-    for (const id of selected) { try { await apiCall('DELETE', `/users/${id}`); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/users/${id}`); } catch {} }
     await fetchAdmins(); setSelected(new Set()); showToast('Removed.');
   };
 

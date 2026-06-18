@@ -52,12 +52,12 @@ export default function CategoriesPage() {
   const someChecked = paginated.some(c => selected.has(c._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of selected) { try { await apiCall('PATCH', `/categories/${id}`, { status }); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/categories/${id}`, { status }); } catch {} }
     await fetchCats(); setSelected(new Set()); showToast(`Updated ${selected.size} categor${selected.size===1?'y':'ies'}`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} categor${selected.size===1?'y':'ies'}?`)) return;
-    for (const id of selected) { try { await apiCall('DELETE', `/categories/${id}`); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/categories/${id}`); } catch {} }
     await fetchCats(); setSelected(new Set()); showToast('Deleted.');
   };
 

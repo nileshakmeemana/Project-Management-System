@@ -58,12 +58,12 @@ export default function ClientsPage() {
   const someChecked = paginated.some(c => selected.has(c._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of selected) { try { await apiCall('PATCH', `/clients/${id}`, { status }); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/clients/${id}`, { status }); } catch {} }
     await fetchClients(); setSelected(new Set()); showToast(`${selected.size} client(s) set to ${status}`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} client(s)?`)) return;
-    for (const id of selected) { try { await apiCall('DELETE', `/clients/${id}`); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/clients/${id}`); } catch {} }
     await fetchClients(); setSelected(new Set()); showToast('Deleted.');
   };
 

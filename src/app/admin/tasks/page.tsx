@@ -63,12 +63,12 @@ export default function AdminTasksPage() {
 
   // Bulk actions
   const bulkApprove = async () => {
-    for (const id of selected) { try { await apiCall('PATCH', `/tasks/${id}`, { status: 'Approved' }); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/tasks/${id}`, { status: 'Approved' }); } catch {} }
     await fetchTasks(); setSelected(new Set()); showToast(`${selected.size} task(s) approved`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} task(s)?`)) return;
-    for (const id of selected) { try { await apiCall('DELETE', `/tasks/${id}`); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/tasks/${id}`); } catch {} }
     await fetchTasks(); setSelected(new Set()); showToast('Deleted');
   };
 

@@ -62,12 +62,12 @@ export default function AdminProjectsPage() {
   const someChecked = paginated.some(p => selected.has(p._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of selected) { try { await apiCall('PATCH', `/projects/${id}`, { status }); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/projects/${id}`, { status }); } catch {} }
     await fetchAll(); setSelected(new Set()); showToast(`Updated ${selected.size} project(s)`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} project(s)?`)) return;
-    for (const id of selected) { try { await apiCall('DELETE', `/projects/${id}`); } catch {} }
+    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/projects/${id}`); } catch {} }
     await fetchAll(); setSelected(new Set()); showToast('Deleted.');
   };
 
