@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const c = require('../controllers/taskController');
+const { protect, adminOnly } = require('../middleware/auth');
+router.use(protect);
+router.get('/',                      c.getTasks);
+router.post('/',                     c.createTask);
+router.get('/:id',                   c.getTask);
+router.patch('/:id',                 c.updateTask);
+router.patch('/:id/review',          adminOnly, c.reviewTask);
+router.delete('/:id',                c.deleteTask);
+module.exports = router;
