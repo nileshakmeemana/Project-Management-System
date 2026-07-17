@@ -1,24 +1,30 @@
 'use client';
+import { NotifStore, Notification } from '@/lib/notifications';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { LOGO_URL } from '@/lib/branding';
 
 interface SearchPage { href: string; label: string; icon: string; }
-interface Notif { id: number; icon: string; text: string; sub: string; unread: boolean; }
 interface TopbarProps {
   searchPages: SearchPage[];
-  notifs?: Notif[];
-  onNotifsUpdate?: (n: Notif[]) => void;
 }
 
-export default function Topbar({ searchPages, notifs = [], onNotifsUpdate }: TopbarProps) {
+export default function Topbar({ searchPages }: TopbarProps) {
   const router = useRouter();
   const [dateStr, setDateStr] = useState('');
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef  = useRef<HTMLDivElement>(null);
+
+  // Subscribe to notification store
+  useEffect(() => {
+    setNotifs(NotifStore.get());
+    return NotifStore.subscribe(setNotifs);
+  }, []);
 
   useEffect(() => {
     setDateStr(new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }));
@@ -53,21 +59,28 @@ export default function Topbar({ searchPages, notifs = [], onNotifsUpdate }: Top
     : searchPages;
 
   const unread = notifs.filter(n => n.unread).length;
-  const shownNotifs = unreadOnly ? notifs.filter(n => n.unread) : notifs;
+  // Show only the most recent 15 notifications
+  const shownNotifs = (unreadOnly ? notifs.filter(n => n.unread) : notifs).slice(0, 15);
 
   const markAllRead = useCallback(() => {
-    onNotifsUpdate?.(notifs.map(n => ({ ...n, unread: false })));
-  }, [notifs, onNotifsUpdate]);
+    NotifStore.markAllRead();
+  }, []);
 
-  const markRead = useCallback((id: number) => {
-    onNotifsUpdate?.(notifs.map(n => n.id === id ? { ...n, unread: false } : n));
-  }, [notifs, onNotifsUpdate]);
+  const markRead = useCallback((id: string) => {
+    NotifStore.markRead(id);
+  }, []);
 
   return (
     <header className="topbar" id="global-topbar">
+      {/* Hamburger — mobile only, positioned by CSS */}
+      <button className="topbar-hamburger" aria-label="Open menu" onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar', {detail:{open:'toggle'}}))} suppressHydrationWarning>
+        <i className="ti ti-menu-2" />
+      </button>
       {/* Logo slot (sidebar handles actual logo) */}
       <div className="topbar-logo" style={{ cursor:'default', gap:0, pointerEvents:'none' }}>
-        <img src="YOUR_LOGO_URL_HERE" alt="Designer Craft"
+        {/* IMPORTANT: logo src must be root-absolute (start with "/") or a full https:// URL.
+            A relative path breaks on nested routes like /admin/tasks after a refresh. */}
+        <img src={LOGO_URL} alt="Designer Craft"
           style={{ height:80, width:80, objectFit:'contain', display:'block', margin:'-12px -4px' }}
           onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
       </div>
@@ -88,19 +101,20 @@ export default function Topbar({ searchPages, notifs = [], onNotifsUpdate }: Top
           {searchOpen && (
             <div className="search-pop open" id="search-pop" role="listbox">
               <div className="search-scroll">
-                {!query.trim() && <div className="search-sec-title">Jump to</div>}
-                {filtered.length === 0
-                  ? <div className="search-empty"><i className="ti ti-search-off" /> No results for &ldquo;{query}&rdquo;</div>
-                  : filtered.map(p => (
-                    <a key={p.href} className="search-row" onClick={() => { router.push(p.href); setQuery(''); setSearchOpen(false); }}>
-                      <span className="search-row-icon"><i className={`ti ${p.icon}`} /></span>
-                      <span className="search-row-body">
-                        <span className="search-row-title">{p.label}</span>
-                        <span className="search-row-sub">Page</span>
-                      </span>
-                    </a>
-                  ))
-                }
+                <div className="search-section">
+                  <div className="search-sec-title">Jump to</div>
+                  {filtered.length === 0
+                    ? <div className="search-empty"><i className="ti ti-search-off" /> No results for &ldquo;{query}&rdquo;</div>
+                    : filtered.map((p, idx) => (
+                      <a key={p.href} className="search-row" role="option" data-idx={idx} onClick={() => { router.push(p.href); setQuery(''); setSearchOpen(false); }}>
+                        <span className="search-row-icon"><i className={`ti ${p.icon}`} /></span>
+                        <span className="search-row-body">
+                          <span className="search-row-title">{p.label}</span>
+                        </span>
+                      </a>
+                    ))
+                  }
+                </div>
                 <div className="search-section footer">
                   <a className="search-row" onClick={() => { router.push(searchPages.find(p => p.href.includes('settings'))?.href || '/'); setQuery(''); setSearchOpen(false); }}>
                     <span className="search-row-icon"><i className="ti ti-settings" /></span>
@@ -145,10 +159,10 @@ export default function Topbar({ searchPages, notifs = [], onNotifsUpdate }: Top
                 )}
                 {shownNotifs.map(n => (
                   <li key={n.id} className={`notif-item${n.unread ? ' unread' : ''}`} onClick={() => markRead(n.id)}>
-                    <div className="notif-icon-wrap"><i className={`ti ${n.icon}`} /></div>
+                    <div className="notif-item-icon"><i className={`ti ${n.icon}`} /></div>
                     <div className="notif-content">
                       <div className="notif-text" dangerouslySetInnerHTML={{ __html: n.text }} />
-                      <div className="notif-sub">{n.sub}</div>
+                      <div className="notif-sub">{(n.sub||'').split('·')[0].trim()} · {new Date(n.ts).toLocaleString('en-GB',{ day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</div>
                     </div>
                     {n.unread && <div className="notif-unread-dot" />}
                   </li>

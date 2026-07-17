@@ -1,25 +1,31 @@
 'use client';
 import BulkBar from '@/components/BulkBar';
+import { NotifStore } from '@/lib/notifications';
+import TableSkeleton from '@/components/TableSkeleton';
 import Pagination from '@/components/Pagination';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall } from '@/lib/api';
+import { useData } from '@/hooks/useData';
+import { fmtAmt, fmtDate, usePrefs } from '@/lib/prefs';
 
-const fmtAmt = (v: number, c = 'LKR') => {
-  try { return new Intl.NumberFormat('en-US',{style:'currency',currency:c,maximumFractionDigits:0}).format(v||0); }
-  catch { return `${c} ${(v||0).toLocaleString()}`; }
-};
+const PAGE_SIZE = 30;
+
 const BADGE: Record<string,string> = {
+  'Assigned':'badge-pending','Accepted':'badge-paid','Declined':'badge-high',
   'Pending Review':'badge-pending','Approved':'badge-paid','Paid':'badge-paid',
   'Rejected':'badge-high','Changes Requested':'badge-med',
 };
-const CLIENTS = ['Second Page','Nail Toolz','Dental On Demand','ANVAYA Wellness','Amaree Collective','Port Stephens'];
-const CATS    = ['Graphic Design','Social Media Content','Reel Editing','Website Update','SEO Setup','Admin Work','Content Writing','Product Upload','Email Marketing','Custom Task'];
 
 export default function MyTasksPage() {
+  usePrefs(); // re-render on currency / date-format changes
   const router = useRouter();
-  const [tasks, setTasks]     = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tasksData, loading, refresh: refreshTasks } = useData('/tasks');
+  const { data: clientsData } = useData('/clients');
+  const { data: catsData }    = useData('/categories');
+  const clientNames: string[] = (clientsData?.clients || []).map((c: any) => c.name);
+  const catNames: string[]    = (catsData?.categories || []).map((c: any) => c.name);
+  const tasks = tasksData?.tasks || [];
   const [filter, setFilter]   = useState('');
   const [search, setSearch]   = useState('');
   const [detail, setDetail]   = useState<any>(null);
@@ -30,16 +36,9 @@ export default function MyTasksPage() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400); };
   const canEdit = (t: any) => ['Pending Review','Changes Requested'].includes(t.status);
 
-  const fetchTasks = async () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (filter) params.set('status', filter);
-    const d = await apiCall('GET', `/tasks?${params}`);
-    setTasks(d.tasks || []);
-    setLoading(false);
-  };
+  const fetchTasks = refreshTasks;
 
-  useEffect(() => { fetchTasks(); }, [filter]);
+  useEffect(() => { refreshTasks(); }, [filter]);
 
   const saveEdit = async () => {
     try {
@@ -59,20 +58,55 @@ export default function MyTasksPage() {
     catch (err: any) { showToast(err.message); }
   };
 
+  // Accept / decline a task the admin assigned to you
+  const respond = async (t: any, action: 'accept'|'decline') => {
+    try {
+      await apiCall('PATCH', `/tasks/${t._id}/respond`, { action });
+      NotifStore.add(action === 'accept' ? 'ti-circle-check' : 'ti-circle-x',
+        `Task ${action === 'accept' ? 'accepted' : 'declined'}: "${t.title}"`, 'Employee');
+      await fetchTasks();
+      showToast(action === 'accept' ? 'Task accepted!' : 'Task declined.');
+    } catch (err: any) { showToast(err.message); }
+  };
+
+  const assignedTasks = tasks.filter(t => t.status === 'Assigned');
+
   const filtered = tasks.filter(t => {
+    if (filter && t.status !== filter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return t.title?.toLowerCase().includes(q) || t.clientName?.toLowerCase().includes(q) || t.category?.toLowerCase().includes(q);
   });
+  const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
 
   return (
     <div className="page-content">
       <div className="page-hero">
-        <div className="page-hero-left"><h2>My Tasks</h2><p>All submitted work — editable before approval or payment</p></div>
+        <div className="page-hero-left"><h2>My Tasks</h2><p>Tasks assigned to you and your submitted work</p></div>
         <div className="page-hero-right">
-          <button className="btn-primary" onClick={() => router.push('/employee/submit')}><i className="ti ti-plus" /> Add Task</button>
+          <button className="btn-primary" onClick={() => router.push('/employee/submit')}><i className="ti ti-send" /> Submit Work</button>
         </div>
       </div>
+
+      {/* Tasks assigned by admin — accept or decline */}
+      {assignedTasks.length > 0 && (
+        <div className="p-card" style={{ marginBottom:'var(--p-space-400)' }}>
+          <div className="p-card-header">
+            <div className="p-card-title"><i className="ti ti-send" /> <span className="sec-t">Assigned to you</span></div>
+            <span className="badge badge-pending">{assignedTasks.length} awaiting response</span>
+          </div>
+          {assignedTasks.map(t => (
+            <div key={t._id} style={{ display:'flex', alignItems:'center', gap:'var(--p-space-300)', padding:'var(--p-space-300) var(--p-space-400)', borderBottom:'.0625rem solid var(--p-border-subdued)' }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:'var(--p-font-weight-medium)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</div>
+                <div style={{ color:'var(--p-text-secondary)', fontSize:'var(--p-font-size-275)', marginTop:2 }}>{t.clientName||'No client'} {t.category?`· ${t.category}`:''}{t.description?` — ${t.description}`:''}</div>
+              </div>
+              <button className="btn-secondary" style={{ height:'1.75rem', fontSize:'var(--p-font-size-275)', color:'var(--p-text-critical)' }} onClick={() => respond(t,'decline')}><i className="ti ti-x" /> Decline</button>
+              <button className="btn-primary" style={{ height:'1.75rem', fontSize:'var(--p-font-size-275)' }} onClick={() => respond(t,'accept')}><i className="ti ti-check" /> Accept</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="p-table-wrap">
         <div className="p-toolbar">
@@ -84,12 +118,12 @@ export default function MyTasksPage() {
             <select className="btn-secondary" style={{ height:'2rem', fontSize:'var(--p-font-size-325)', padding:'0 var(--p-space-300)', cursor:'pointer', boxShadow:'var(--p-shadow-button)' }}
               value={filter} onChange={e => setFilter(e.target.value)} id="mt-filter">
               <option value="">All Status</option>
-              {['Pending Review','Approved','Changes Requested','Rejected','Paid'].map(s => <option key={s}>{s}</option>)}
+              {['Assigned','Accepted','Pending Review','Approved','Changes Requested','Rejected','Paid'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
         </div>
 
-        {loading ? <div style={{ padding:'3rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</div> : (
+        {loading ? <TableSkeleton rows={8} cols={7} /> : (
           <table className="p-table">
             <thead>
               <tr>
@@ -106,7 +140,7 @@ export default function MyTasksPage() {
             </thead>
             <tbody id="mt-tbody">
               {filtered.length === 0 && <tr><td colSpan={9} style={{ textAlign:'center', padding:'var(--p-space-800)', color:'var(--p-text-secondary)' }}>No tasks found.</td></tr>}
-              {filtered.map(t => (
+              {paginated.map(t => (
                 <tr key={t._id}>
                   <td style={{ fontWeight:'var(--p-font-weight-medium)' }}>{t.title}</td>
                   <td className="td-muted">{t.clientName||'—'}</td>
@@ -114,11 +148,15 @@ export default function MyTasksPage() {
                   <td className="td-num td-muted">{t.hours}</td>
                   <td className="td-num td-muted">{fmtAmt(t.requestedAmount,t.currency)}</td>
                   <td className="td-num td-muted">{t.approvedAmount?fmtAmt(t.approvedAmount,t.currency):'—'}</td>
-                  <td className="td-muted">{t.dateCompleted?new Date(t.dateCompleted).toLocaleDateString():'—'}</td>
+                  <td className="td-muted">{t.dateCompleted?fmtDate(t.dateCompleted):'—'}</td>
                   <td><span className={`badge ${BADGE[t.status]||'badge-draft'}`}>{t.status}</span></td>
                   <td>
                     <div className="row-acts" style={{ opacity:1 }}>
                       <button className="ia-btn" onClick={() => setDetail(t)} title="View"><i className="ti ti-eye" /></button>
+                      {t.status === 'Assigned' && <>
+                        <button className="btn-secondary" style={{ height:'1.5rem', fontSize:'var(--p-font-size-275)' }} onClick={() => respond(t,'accept')}><i className="ti ti-check" /> Accept</button>
+                        <button className="btn-secondary" style={{ height:'1.5rem', fontSize:'var(--p-font-size-275)', color:'var(--p-text-critical)' }} onClick={() => respond(t,'decline')}>Decline</button>
+                      </>}
                       {canEdit(t) ? <>
                         <button className="ia-btn" onClick={() => setEditing({...t})} title="Edit"><i className="ti ti-pencil" /></button>
                         <button className="ia-btn del" onClick={() => deleteTask(t._id)} title="Delete"><i className="ti ti-trash" /></button>
@@ -130,7 +168,8 @@ export default function MyTasksPage() {
             </tbody>
           </table>
         )}
-        <div className="p-table-footer" id="mt-footer">{filtered.length} task{filtered.length!==1?'s':''}</div>
+        <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+        <div className="p-table-footer" id="mt-footer">{paginated.length} task{filtered.length!==1?'s':''}</div>
       </div>
 
       {/* Detail modal */}
@@ -145,7 +184,7 @@ export default function MyTasksPage() {
                   <p style={{ fontSize:'var(--p-font-size-325)', lineHeight:1.8, color:'var(--p-text-secondary)' }}>
                     <b style={{ color:'var(--p-text)' }}>Client:</b> {detail.clientName}<br/>
                     <b style={{ color:'var(--p-text)' }}>Category:</b> {detail.category||'—'}<br/>
-                    <b style={{ color:'var(--p-text)' }}>Date:</b> {detail.dateCompleted?new Date(detail.dateCompleted).toLocaleDateString():'—'}<br/>
+                    <b style={{ color:'var(--p-text)' }}>Date:</b> {detail.dateCompleted?fmtDate(detail.dateCompleted):'—'}<br/>
                     <b style={{ color:'var(--p-text)' }}>Hours:</b> {detail.hours}<br/>
                     <b style={{ color:'var(--p-text)' }}>Requested:</b> {fmtAmt(detail.requestedAmount,detail.currency)}<br/>
                     <b style={{ color:'var(--p-text)' }}>Approved:</b> {detail.approvedAmount?fmtAmt(detail.approvedAmount,detail.currency):'—'}
@@ -178,14 +217,16 @@ export default function MyTasksPage() {
                 <div className="p-field"><label className="p-label">Task Title</label><input className="p-input" value={editing.title} onChange={e=>setEditing((v:any)=>({...v,title:e.target.value}))}/></div>
                 <div className="p-field"><label className="p-label">Client</label>
                   <select className="p-input" value={editing.clientName} onChange={e=>setEditing((v:any)=>({...v,clientName:e.target.value}))}>
-                    {CLIENTS.map(c=><option key={c}>{c}</option>)}
+                    {!clientNames.includes(editing.clientName)&&editing.clientName&&<option>{editing.clientName}</option>}
+                    {clientNames.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
               <div className="p-grid2">
                 <div className="p-field"><label className="p-label">Category</label>
                   <select className="p-input" value={editing.category} onChange={e=>setEditing((v:any)=>({...v,category:e.target.value}))}>
-                    <option value="">—</option>{CATS.map(c=><option key={c}>{c}</option>)}
+                    <option value="">—</option>{!catNames.includes(editing.category)&&editing.category&&<option>{editing.category}</option>}
+                    {catNames.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="p-field"><label className="p-label">Date Completed</label><input type="date" className="p-input" value={editing.dateCompleted?.slice(0,10)||''} onChange={e=>setEditing((v:any)=>({...v,dateCompleted:e.target.value}))}/></div>

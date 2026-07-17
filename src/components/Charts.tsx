@@ -4,14 +4,15 @@ import { useMemo } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Tooltip } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import type { ChartConfig } from "@/components/ui/chart"
+import { fmtAmt, fmtDate, usePrefs, toBase } from '@/lib/prefs';
 
 const fmtK  = (v: number) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1_000 ? `${Math.round(v/1_000)}K` : String(Math.round(v))
-const fmtAmt = (v: number, c = 'LKR') => { try { return new Intl.NumberFormat('en-US', {style:'currency',currency:c,maximumFractionDigits:0}).format(v) } catch { return `${c} ${Math.round(v).toLocaleString()}` } }
 
 /* ─── Client Profitability Bar Chart (Admin) ─── */
 const profitConfig = { value: { label: "Revenue", color: "#005bd3" } } satisfies ChartConfig
 
 export function ClientProfitChart({ data }: { data: Record<string, number> }) {
+  usePrefs();
   const chartData = useMemo(() =>
     Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([client, value]) => ({
       client: client.split(' ')[0],
@@ -51,7 +52,7 @@ export function EarningsOverviewChart({ tasks }: { tasks: any[] }) {
       const day = d.getDay()
       const sun = new Date(d); sun.setDate(d.getDate() - day)
       const key = sun.toISOString().slice(0, 10)
-      buckets[key] = (buckets[key] || 0) + (t.approvedAmount || t.requestedAmount || 0)
+      buckets[key] = (buckets[key] || 0) + toBase(t.approvedAmount || t.requestedAmount || 0, t.currency)
     })
     return Object.entries(buckets).sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({
       date, amount,
@@ -116,7 +117,7 @@ export function EarningsByStatusDonut({ tasks }: { tasks: any[] }) {
   const { segments, total } = useMemo(() => {
     const map: Record<string, number> = {}
     tasks.forEach(t => {
-      const val = t.approvedAmount || t.requestedAmount || 0
+      const val = toBase(t.approvedAmount || t.requestedAmount || 0, t.currency)
       map[t.status] = (map[t.status] || 0) + val
     })
     const segments = Object.entries(map)

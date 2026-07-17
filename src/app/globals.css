@@ -604,16 +604,7 @@ body {
   font-weight: var(--p-font-weight-medium);
 }
 .date-chip { display: none; }
-.topbar-hamburger {
-  display: none;
-  background: none; border: none; cursor: pointer;
-  color: #e3e3e3;
-  width: 2rem; height: 2rem;
-  border-radius: var(--p-border-radius-150);
-  align-items: center; justify-content: center;
-  font-size: 18px;
-  transition: background var(--p-motion-duration-100) var(--p-motion-ease);
-}
+
 .topbar-hamburger:hover { background: #ffffff0d; }
 .mobile-menu-btn {
   display: none;
@@ -1010,6 +1001,7 @@ input::placeholder { color: var(--p-text-secondary); }
   font-size: var(--p-font-size-300);
   background: var(--p-surface);
   transition: background var(--p-motion-duration-100) var(--p-motion-ease);
+  margin-bottom: var(--p-space-200);
 }
 .activity-item:hover { background: var(--p-surface-hover); }
 .activity-ico {
@@ -1063,6 +1055,7 @@ input::placeholder { color: var(--p-text-secondary); }
   border: .0625rem solid var(--p-border);
   font-size: var(--p-font-size-300);
   background: var(--p-surface);
+  margin-bottom: var(--p-space-150);
 }
 .inv-icon {
   width: 26px; height: 26px; border-radius: var(--p-border-radius-150);
@@ -1081,6 +1074,7 @@ input::placeholder { color: var(--p-text-secondary); }
 
 /* ═══ NOTIFICATIONS POPOVER ═══ */
 .notif-wrap { position: relative; display: flex; align-items: center; }
+
 .notif-pop {
   position: absolute;
   top: calc(100% + 10px);
@@ -1096,16 +1090,9 @@ input::placeholder { color: var(--p-text-secondary); }
   display: none;
   flex-direction: column;
   overflow: hidden;
-  /* enter animation */
-  transform-origin: top right;
-  animation: notifPopIn var(--p-motion-duration-150) var(--p-motion-ease-out);
-  color: var(--p-text);
 }
 .notif-pop.open { display: flex; }
-@keyframes notifPopIn {
-  from { opacity: 0; transform: translateY(-6px) scale(.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
+
 .notif-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--p-space-200);
@@ -1119,6 +1106,7 @@ input::placeholder { color: var(--p-text-secondary); }
   line-height: var(--p-font-line-height-600);
 }
 .notif-head-acts { display: flex; align-items: center; gap: var(--p-space-100); }
+
 .notif-icon-btn {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
@@ -1136,6 +1124,7 @@ input::placeholder { color: var(--p-text-secondary); }
   flex: 1;
   scrollbar-width: thin;
   scrollbar-color: var(--p-color-scrollbar-thumb-bg) transparent;
+  padding: 0; margin: 0;
 }
 .notif-list::-webkit-scrollbar { width: 6px; }
 .notif-list::-webkit-scrollbar-thumb { background: var(--p-color-scrollbar-thumb-bg); border-radius: 3px; }
@@ -1150,8 +1139,10 @@ input::placeholder { color: var(--p-text-secondary); }
   cursor: pointer;
   text-decoration: none;
   transition: background var(--p-motion-duration-100) var(--p-motion-ease);
+  color: var(--p-text);
 }
 .notif-item:hover { background: var(--p-surface-hover); }
+
 .notif-item-icon {
   position: relative;
   width: 26px; height: 26px; border-radius: var(--p-border-radius-150);
@@ -1168,6 +1159,7 @@ input::placeholder { color: var(--p-text-secondary); }
   border: 1.5px solid var(--p-surface);
 }
 .notif-item.read .notif-unread-dot { display: none; }
+
 .notif-body { min-width: 0; }
 .notif-meta {
   display: flex; align-items: center; justify-content: space-between;
@@ -1177,15 +1169,17 @@ input::placeholder { color: var(--p-text-secondary); }
   margin-bottom: 2px;
 }
 .notif-meta-left { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .notif-item-mark {
   border: none; background: transparent; cursor: pointer;
   color: var(--p-icon-secondary); font-size: 15px; line-height: 1;
   padding: 2px; border-radius: var(--p-border-radius-100); flex-shrink: 0;
-  opacity: 0; transition: opacity var(--p-motion-duration-100) var(--p-motion-ease), color var(--p-motion-duration-100) var(--p-motion-ease);
+  opacity: 0; transition: opacity var(--p-motion-duration-100) var(--p-motion-ease);
 }
 .notif-item:hover .notif-item-mark { opacity: 1; }
 .notif-item-mark:hover { color: var(--p-icon-success); }
 .notif-item.read .notif-item-mark { display: none; }
+
 .notif-title {
   font-size: var(--p-font-size-325);
   font-weight: var(--p-font-weight-semibold);
@@ -1213,25 +1207,6 @@ input::placeholder { color: var(--p-text-secondary); }
 }
 .notif-empty i { font-size: 28px; color: var(--p-icon-disabled); display: block; margin-bottom: var(--p-space-200); }
 
-/* ═══ TOP SEARCH SUGGESTIONS ═══ */
-.search-pop {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: var(--p-surface);
-  border: .0625rem solid var(--p-border);
-  border-radius: var(--p-border-radius-300);
-  box-shadow: var(--p-shadow-200);
-  z-index: 520;
-  display: none;
-  flex-direction: column;
-  max-height: 70vh;
-  overflow: hidden;
-  color: var(--p-text);
-  animation: notifPopIn var(--p-motion-duration-150) var(--p-motion-ease-out);
-  transform-origin: top center;
-}
 .search-pop.open { display: flex; }
 .search-scroll {
   overflow-y: auto;
@@ -1439,55 +1414,13 @@ body.dark-mode .period-custom input[type="date"] { background: #222; border-colo
 /* ═══ RESPONSIVE ═══ */
 
 /* Tablet: 2-col metric, 2-col main grid */
-@media (max-width: 1024px) {
-  .metrics { flex-wrap: wrap; }
-  .metric-card { flex: 1 1 45%; border-right: none; border-bottom: .0625rem solid var(--p-border); }
-  .grid-main { grid-template-columns: 1fr 1fr; }
-  .grid-main > .panel:first-child { grid-column: 1 / -1; }
-}
+
 
 /* Tablet narrow: sidebar collapses */
-@media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .main {
-    margin-left: 0;
-  }
-  .mobile-menu-btn { display: flex; }
-  .topbar { padding: 0 var(--p-space-300); gap: var(--p-space-200); }
-  .topbar-hamburger { display: flex; }
-  .topbar-logo { width: auto; }
-  .topbar-search { max-width: 12rem; }
-  .topbar-search-kbd { display: none; }
-  .topbar-date { display: none; }
-  .topbar-lang { display: none; }
-  .sidebar { top: var(--pg-top-bar-height); transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .content { padding: var(--p-space-400) var(--p-space-400) var(--p-space-1200); }
-  .metrics { flex-wrap: wrap; }
-  .metric-card { flex: 1 1 45%; border-right: none; border-bottom: .0625rem solid var(--p-border); }
-  .grid-main { grid-template-columns: 1fr; }
-  .grid-main > .panel:first-child { grid-column: auto; }
-  .date-chip { display: none; }
-}
+
 
 /* Mobile */
-@media (max-width: 480px) {
-  .metrics { flex-wrap: wrap; }
-  .metric-card { padding: var(--p-space-300); }
-  .metric-value { font-size: var(--p-font-size-500); }
-  .content { padding: var(--p-space-300) var(--p-space-300) var(--p-space-1200); }
-  .topbar-right { gap: var(--p-space-100); }
-  .btn-secondary span { display: none; }
-  .btn-primary span { display: none; }
-  .btn-primary, .btn-secondary { padding: 0 var(--p-space-200); }
-  .task-add-row { flex-wrap: wrap; }
-  .task-add-row select { width: 80px; }
-}
+
 
 /* ════════════════════════════
    TASKS PAGE — Polaris table
@@ -1664,6 +1597,12 @@ body.dark-mode .period-custom input[type="date"] { background: #222; border-colo
   margin: 0; padding: 0;
   transition: background var(--p-motion-duration-100), border-color var(--p-motion-duration-100);
   display: flex; align-items: center; justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+/* Ensure no white flash — explicitly set background for ALL states */
+input[type="checkbox"]:not(:checked):not(:indeterminate) {
+  background: var(--p-input-bg-surface);
 }
 .pt-checkbox-label input[type="checkbox"]:checked {
   background: var(--p-fill-brand);
@@ -1677,16 +1616,20 @@ body.dark-mode .period-custom input[type="date"] { background: #222; border-colo
   transform: rotate(45deg) translate(-1px, -1px);
 }
 input[type="checkbox"]:indeterminate {
-  background: var(--p-fill-brand);
-  border-color: var(--p-fill-brand);
+  background: var(--p-fill-brand) !important;
+  border-color: var(--p-fill-brand) !important;
 }
 input[type="checkbox"]:indeterminate::after {
-  content: '';
-  display: block;
-  width: 8px;
-  height: 1.5px;
-  background: #fff;
-  position: absolute;
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 8px !important;
+  height: 2px !important;
+  background: #fff !important;
+  border-radius: 1px !important;
 }
 .pt-checkbox-label input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 2px #005bd326; }
 
@@ -1807,16 +1750,8 @@ input[type="checkbox"]:indeterminate::after {
 }
 
 /* Responsive tasks page */
-@media (max-width: 768px) {
-  .tasks-page { padding: var(--p-space-400); }
-  .pt-search-wrap { max-width: 100%; }
-  .pt-toolbar { flex-wrap: wrap; }
-  .pt-toolbar-right { flex-wrap: wrap; }
-  .pt-th-priority, .pt-td:nth-child(3) { display: none; }
-}
-@media (max-width: 480px) {
-  .pt-th-status, .pt-td:nth-child(4) { display: none; }
-}
+
+
 
 /* ═══════════════════════════════════════════
    SHARED PAGE LAYOUT
@@ -1832,8 +1767,11 @@ input[type="checkbox"]:indeterminate::after {
 }
 
 .page-hero-left h2 {
-  font-size:var(--p-font-size-400); font-weight:var(--p-font-weight-semibold);
-  color:var(--p-text); line-height:var(--p-font-line-height-600);
+  font-size: var(--p-font-size-400);
+  font-weight: var(--p-font-weight-semibold);
+  color: var(--p-text);
+  line-height: var(--p-font-line-height-600);
+  margin: 0;
 }
 .page-hero-left p { font-size:var(--p-font-size-325); color:var(--p-text-secondary); margin-top:2px; }
 .page-hero-right { display:flex; gap:var(--p-space-200); flex-shrink:0; }
@@ -1903,9 +1841,12 @@ input[type="checkbox"]:indeterminate::after {
   box-shadow:var(--p-shadow-100); overflow:hidden;
 }
 .p-card-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:var(--p-space-400);
-  padding-bottom:var(--p-space-300);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--p-space-300);
+  padding: var(--p-space-300) var(--p-space-400);
+  border-bottom: .0625rem solid var(--p-border-subdued);
+  min-height: 2.75rem;
+  flex-shrink: 0;
 }
 .p-card-title {
   font-size:var(--p-font-size-325); font-weight:var(--p-font-weight-semibold);
@@ -1931,7 +1872,11 @@ input[type="checkbox"]:indeterminate::after {
   display:flex; align-items:center; gap:var(--p-space-200);
   padding:var(--p-space-200) var(--p-space-300);
   border-bottom:.0625rem solid var(--p-border-subdued);
-  flex-wrap:wrap;
+  flex-wrap:wrap;;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--p-surface);
 }
 .p-search {
   display:flex; align-items:center;
@@ -2139,22 +2084,9 @@ textarea.p-input { height:auto; padding:var(--p-space-200) var(--p-space-300); r
 /* ═══════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════ */
-@media (max-width:1024px) {
-  .stat-row { flex-wrap:wrap; }
-  .stat-card { flex:1 1 45%; border-right:none; border-bottom:.0625rem solid var(--p-border); }
-  .two-col { grid-template-columns:1fr; }
-  .three-col { grid-template-columns:1fr 1fr; }
-  .cal-page-grid { grid-template-columns:1fr; }
-  .settings-grid { grid-template-columns:1fr; }
-}
-@media (max-width:768px) {
-  .page { padding:var(--p-space-400); }
 
-  .three-col { grid-template-columns:1fr; }
-}
-@media (max-width:480px) {
 
-}
+
 
 
 /* ── Shared bulk-action bar (all table pages) ── */
@@ -2284,23 +2216,14 @@ body.dark-mode .topbar-theme-toggle.light { background: #005bd3; }
 .p-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--p-space-400); }
 .p-field { display: flex; flex-direction: column; gap: var(--p-space-100); }
 .page-hero { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--p-space-400); }
-.page-hero-left h2 { font-size: var(--p-font-size-600); font-weight: var(--p-font-weight-bold); color: var(--p-text); }
+
 .page-hero-left p { font-size: var(--p-font-size-325); color: var(--p-text-secondary); margin-top: 2px; }
 .page-hero-right { display: flex; align-items: center; gap: var(--p-space-200); flex-shrink: 0; }
 .metrics-row { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--p-space-400); margin-bottom: var(--p-space-400); }
 /* Input padding fix — only apply left-padding when inside input-wrap (has icon) */
 .input-wrap .p-input { padding-left: 30px; }
 .p-field > .p-input, .p-modal-body > .p-field .p-input { padding: 0 var(--p-space-300); }
-@media(max-width:768px) {
-  :root { --pg-navigation-width: 0px; }
-  .main { margin-left: 0; }
-  .sidebar { transform: translateX(-100%); width: 15rem; transition: transform .2s; }
-  .sidebar.open { transform: translateX(0); }
-  .two-col, .cal-page-grid { grid-template-columns: 1fr; }
-  .p-grid2 { grid-template-columns: 1fr; }
-  .stat-row { flex-wrap: wrap; }
-  .metrics-row { grid-template-columns: repeat(2,1fr); }
-}
+
 
 /* ════ Admin Dashboard — exact CSS from HTML source ════ */
 .metrics {
@@ -2472,21 +2395,34 @@ body.dark-mode .topbar-theme-toggle.light { background: #005bd3; }
 .deadline-item { display:flex; align-items:center; gap:var(--p-space-200); font-size:var(--p-font-size-275); }
 .add-row { display:flex; gap:var(--p-space-200); margin-top:var(--p-space-200); }
 .add-row input { flex:1; height:1.75rem; padding:0 var(--p-space-250); background:var(--p-surface-secondary); border:.0625rem solid var(--p-border); border-radius:var(--p-border-radius-150); font-size:var(--p-font-size-275); font-family:inherit; outline:none; }
-@media(max-width:1024px) { .grid-main { grid-template-columns: 1fr 1fr; } }
-@media(max-width:768px) { .grid-main { grid-template-columns: 1fr; } .metrics { flex-wrap: wrap; } }
+
+
 
 /* ════ Pagination ════ */
 .pg-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 2rem; height: 2rem; padding: 0 var(--p-space-200);
-  border-radius: var(--p-border-radius-150);
+  min-width: 2rem; height: 2rem;
   border: .0625rem solid var(--p-border);
-  background: var(--p-surface); color: var(--p-text);
-  font-size: var(--p-font-size-325); font-family: inherit;
-  cursor: pointer; transition: background .1s;
+  border-radius: var(--p-border-radius-150);
+  background: var(--p-surface);
+  color: var(--p-text);
+  font-size: var(--p-font-size-325);
+  font-family: var(--p-font-family-sans);
+  font-weight: var(--p-font-weight-medium);
+  cursor: pointer;
+  padding: 0 var(--p-space-200);
+  box-shadow: var(--p-shadow-button);
+  transition: background var(--p-motion-duration-100) var(--p-motion-ease);
+  -webkit-tap-highlight-color: transparent;
 }
 .pg-btn:hover:not(:disabled) { background: var(--p-surface-secondary); }
-.pg-btn.active { background: var(--p-fill-brand); color: #fff; border-color: var(--p-fill-brand); }
+.pg-btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+.pg-btn.active {
+  background: var(--p-fill-brand);
+  color: var(--p-text-brand-on-fill);
+  border-color: var(--p-fill-brand);
+  box-shadow: none;
+}
 .pg-btn:disabled { opacity: .4; cursor: not-allowed; }
 .pg-ellipsis { color: var(--p-text-secondary); padding: 0 var(--p-space-100); font-size: var(--p-font-size-325); }
 
@@ -2591,3 +2527,693 @@ table.p-table tr td.cb-col {
 .p-table td.td-wrap { white-space: normal; overflow: visible; max-width: none; }
 
 /* ════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — TABLET (≤1024px) + MOBILE (≤768px)
+   ═══════════════════════════════════════════════════ */
+
+/* ── Hamburger button ───────────────────────────── */
+.topbar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--p-text);
+  font-size: 1.25rem;
+  border-radius: var(--p-border-radius-150);
+  flex-shrink: 0;
+}
+.topbar-hamburger:hover { background: var(--p-surface-secondary); }
+
+/* Sidebar overlay — shown on mobile when sidebar is open */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+}
+.sidebar-overlay.visible { display: block; }
+
+/* ── Tablet ≤1024px ─────────────────────────────── */
+
+
+/* ── Mobile ≤768px ──────────────────────────────── */
+
+
+/* ── Small mobile ≤480px ────────────────────────── */
+
+
+/* ═══ Skeleton loading pulse ═══ */
+@keyframes skeleton-pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: .4; }
+  100% { opacity: 1; }
+}
+.skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.skeleton-row {
+  height: .875rem;
+  border-radius: var(--p-border-radius-100);
+  background: var(--p-border-subdued);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* ═══ Touch improvements ═══ */
+.nav-item, .btn-primary, .btn-secondary, .ia-btn, .pg-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MASTER RESPONSIVE — matching Shopify Polaris topbar pattern
+   Ref: _NavigationIcon hidden at min-width:48em, shown below
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Hamburger ─────────────────────────────────────────────── */
+/* Exact Shopify pattern: show below 48em (768px), hide above */
+.topbar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--p-height-900, 2.25rem);
+  height: var(--p-height-900, 2.25rem);
+  min-width: var(--p-height-900, 2.25rem);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #e3e3e3;        /* light on dark topbar */
+  font-size: 1.125rem;
+  border-radius: var(--p-border-radius-300);
+  flex-shrink: 0;
+  padding: 0;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.topbar-hamburger:hover {
+  background: rgba(255,255,255,.08);
+}
+.topbar-hamburger:active {
+  background: rgba(255,255,255,.12);
+}
+
+/* ── Mobile overlay ─────────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  transition: opacity .2s ease;
+}
+.sidebar-overlay.visible { display: block; }
+
+/* ═══════════════════════════════════════
+   TABLET — max-width: 1024px
+   ═══════════════════════════════════════ */
+@media (max-width: 1024px) {
+  /* Stat cards wrap to 2-col */
+  .stat-row { flex-wrap: wrap; }
+  .stat-card { flex: 1 1 calc(50% - .5rem); border-right: none; border-bottom: .0625rem solid var(--p-border-subdued); }
+
+  /* All grids collapse */
+  .two-col   { grid-template-columns: 1fr !important; }
+  .three-col { grid-template-columns: 1fr !important; }
+  .grid-main { grid-template-columns: 1fr !important; }
+  .grid-main > .panel:first-child { grid-column: auto; }
+
+  /* Metrics wrap */
+  .metrics { flex-wrap: wrap; }
+  .metric-card { flex: 1 1 calc(50% - var(--p-space-200)); border-right: none; border-bottom: .0625rem solid var(--p-border-subdued); }
+
+  /* Forms: single col */
+  .p-grid2 { grid-template-columns: 1fr !important; }
+
+  /* Tables: horizontal scroll */
+  .p-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .p-table { min-width: 520px; }
+
+
+/* ── Sticky first column on mobile/tablet ─────────────────── */
+  .p-table td:first-child:not(.cb-col),
+  .p-table th:first-child:not(.cb-col) {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--p-surface);
+  }
+  /* When first col IS checkbox, stick the second col (task name) */
+  .p-table td.cb-col,
+  .p-table th.cb-col {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--p-surface);
+  }
+  /* Checkbox first column: exact 44px (12px left padding + box) so the pinned
+     2nd column sits flush at 44px — no gap, and the checkbox keeps its padding */
+  .p-table th:first-child:has(input[type="checkbox"]),
+  .p-table td:first-child:has(input[type="checkbox"]) {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    padding: 0 0 0 var(--p-space-300) !important;
+    text-align: left;
+  }
+  /* Pin the identifying column ONLY on tables whose first column is a checkbox */
+  .p-table:has(thead th:first-child input[type="checkbox"]) td:nth-child(2),
+  .p-table:has(thead th:first-child input[type="checkbox"]) th:nth-child(2),
+  .p-table td:nth-child(2).sticky-2nd,
+  .p-table th:nth-child(2).sticky-2nd {
+    position: sticky;
+    left: 44px;
+    z-index: 2;
+    background: var(--p-surface);
+    box-shadow: 2px 0 6px rgba(0,0,0,.08);
+    min-width: 140px;
+  }
+  /* Ensure sticky cells always have opaque background */
+  .p-table tr:has(input[type="checkbox"]:checked) td:nth-child(2),
+  .p-table tr:has(input[type="checkbox"]:checked) td.cb-col {
+    background: #f0f7ff;
+  }
+
+  /* Toolbar: wrap on tablet */
+  .p-toolbar { flex-wrap: wrap; gap: var(--p-space-200); }
+  .p-toolbar-end { flex-wrap: wrap; }
+
+  /* Page hero: stack */
+  .page-hero { flex-direction: column; align-items: flex-start; gap: var(--p-space-300); }
+  .page-hero-right { width: 100%; display: flex; flex-wrap: wrap; gap: var(--p-space-200); }
+}
+
+/* ═══════════════════════════════════════
+   MOBILE — max-width: 768px
+   Matches Shopify: _NavigationIcon shown, _ContextControl hidden
+   ═══════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* ── Topbar ─────────────────────────── */
+  /* Show hamburger (like Shopify _NavigationIcon at <48em) */
+  .topbar-hamburger { display: flex; }
+
+  /* Switch topbar from grid to flex on mobile — hamburger replaces logo column */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--p-space-150);
+    padding: 0 var(--p-space-300);
+  }
+
+  /* Logo area: auto width */
+  .topbar-logo { width: auto; padding-left: 0; }
+
+  /* Center area: push to the right */
+  .topbar-center { flex: 1; }
+
+  /* Hide desktop topbar elements */
+  .topbar-search-wrap { display: none !important; }
+  .topbar-date        { display: none !important; }
+  .topbar-lang        { display: none !important; }
+  .topbar-logo-text   { display: none !important; }
+
+  /* ── Sidebar: off-canvas ────────────── */
+  .sidebar {
+    transform: translateX(-100%);
+    top: 0 !important;
+    height: 100dvh !important;
+    padding-top: var(--pg-top-bar-height);   /* dvh = dynamic viewport height (iOS safe) */
+    z-index: 200;
+    border-radius: 0 !important;
+    transition: transform .2s cubic-bezier(.25,.1,.25,1);
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,.3);
+  }
+
+  /* ── Main: full width ───────────────── */
+  .main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .main-inner {
+    padding: var(--p-space-400) var(--p-space-300) var(--p-space-800) !important;
+  }
+
+  /* ── Content pages ──────────────────── */
+  .content, .page-content {
+    padding: var(--p-space-400) var(--p-space-300);
+  }
+
+  /* ── Page hero ──────────────────────── */
+  .page-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--p-space-300);
+    padding-bottom: var(--p-space-300);
+  }
+  .page-hero-right {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-space-200);
+  }
+  .page-hero-right .btn-primary,
+  .page-hero-right .btn-secondary {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  /* ── Stat row ────────────────────────── */
+  .stat-row { flex-wrap: wrap; }
+  .stat-card { flex: 1 1 calc(50% - .5rem); min-width: 140px; border-right: none; border-bottom: .0625rem solid var(--p-border-subdued); }
+
+  /* ── Metrics ─────────────────────────── */
+  .metrics { flex-wrap: wrap; }
+  .metric-card { flex: 1 1 calc(50% - var(--p-space-200)); border-right: none; border-bottom: .0625rem solid var(--p-border-subdued); }
+
+  /* ── Tables ──────────────────────────── */
+  .p-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--p-border-radius-200); }
+  .p-table { min-width: 600px; }
+
+  /* ── Toolbar ─────────────────────────── */
+  .p-toolbar { flex-wrap: wrap; gap: var(--p-space-200); padding: var(--p-space-200) var(--p-space-300); }
+  .p-search   { width: 100%; max-width: 100%; }
+  .p-toolbar-end { width: 100%; justify-content: flex-end; flex-wrap: wrap; gap: var(--p-space-150); }
+
+  /* ── Cards & layouts ─────────────────── */
+  .p-card { border-radius: var(--p-border-radius-200); }
+  .two-col   { grid-template-columns: 1fr !important; gap: var(--p-space-300) !important; }
+  .three-col { grid-template-columns: 1fr !important; gap: var(--p-space-300) !important; }
+  .grid-main { grid-template-columns: 1fr !important; gap: var(--p-space-300) !important; }
+  .grid-main > .panel:first-child { grid-column: auto !important; }
+  .p-grid2   { grid-template-columns: 1fr !important; }
+
+  /* ── Modals: bottom sheet on mobile ──── */
+  .p-modal-bg  { padding: 0; align-items: flex-end; }
+  .p-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: var(--p-border-radius-300) var(--p-border-radius-300) 0 0 !important;
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+
+  /* ── Bulk bar ────────────────────────── */
+  .pt-bulk-bar { flex-wrap: wrap; gap: var(--p-space-200); padding: var(--p-space-200); }
+  .pt-bulk-actions { flex-wrap: wrap; gap: var(--p-space-150); }
+
+  /* ── Filter buttons ──────────────────── */
+  .filter-btn-group .btn-secondary { font-size: var(--p-font-size-300); padding: 0 var(--p-space-200); }
+
+  /* ── Period filter popup ─────────────── */
+  .period-pop { width: calc(100vw - 2rem) !important; right: 1rem !important; left: 1rem !important; }
+
+  /* ── Calendar ────────────────────────── */
+  .cal-cell { font-size: var(--p-font-size-275); }
+
+  /* ── Charts ──────────────────────────── */
+  .recharts-responsive-container { min-height: 180px; }
+}
+
+/* ═══════════════════════════════════════
+   SMALL MOBILE — max-width: 480px
+   ═══════════════════════════════════════ */
+@media (max-width: 480px) {
+  .main-inner  { padding: var(--p-space-300) var(--p-space-200) var(--p-space-800) !important; }
+  .content, .page-content { padding: var(--p-space-300) var(--p-space-200); }
+  .topbar { padding: 0 var(--p-space-150); gap: var(--p-space-100); }
+
+  /* Single-col stats */
+  .stat-card { flex: 1 1 100%; }
+
+  /* Single-col metrics */
+  .metric-card { flex: 1 1 100%; }
+  .metric-value { font-size: 1.25rem; }
+
+  /* Page title smaller */
+  
+
+  /* Hide non-essential table columns */
+  .p-table .hide-xs { display: none !important; }
+
+  /* Pagination smaller */
+  .pg-btn { min-width: 1.75rem; height: 1.75rem; font-size: var(--p-font-size-300); }
+
+  /* Topbar icons smaller */
+  .topbar-right { gap: var(--p-space-100); }
+}
+
+/* ══ Touch improvements (all screen sizes) ═══════════════════ */
+.nav-item, .btn-primary, .btn-secondary, .ia-btn, .pg-btn,
+.stat-card, .metric-card, .p-card, .cal-cell, .task-item {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.search-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--p-surface);
+  border: .0625rem solid var(--p-border);
+  border-radius: var(--p-border-radius-300);
+  box-shadow: var(--p-shadow-200);
+  z-index: 520;
+  display: none;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow: hidden;
+  color: var(--p-text);
+  animation: notifPopIn var(--p-motion-duration-150) var(--p-motion-ease-out);
+  transform-origin: top center;
+}
+.search-pop.open { display: flex; }
+
+.search-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--p-color-scrollbar-thumb-bg) transparent;
+}
+.search-scroll::-webkit-scrollbar { width: 6px; }
+.search-scroll::-webkit-scrollbar-thumb { background: var(--p-color-scrollbar-thumb-bg); border-radius: 3px; }
+
+.search-section { padding: var(--p-space-200) var(--p-space-200) var(--p-space-150); }
+.search-section + .search-section { border-top: .0625rem solid var(--p-border-subdued); }
+.search-section.footer { background: var(--p-surface-secondary); border-top: .0625rem solid var(--p-border-subdued); }
+
+.search-sec-title {
+  font-size: var(--p-font-size-275);
+  font-weight: var(--p-font-weight-semibold);
+  color: var(--p-text-secondary);
+  padding: var(--p-space-100) var(--p-space-200) var(--p-space-150);
+}
+.search-row {
+  display: flex; align-items: center; gap: var(--p-space-250);
+  padding: var(--p-space-150) var(--p-space-200);
+  border-radius: var(--p-border-radius-200);
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--p-text);
+  transition: background var(--p-motion-duration-100) var(--p-motion-ease);
+}
+.search-row:hover, .search-row.active { background: var(--p-surface-secondary-hover); }
+.search-row-icon {
+  width: 28px; height: 28px; border-radius: var(--p-border-radius-150);
+  background: var(--p-surface-secondary);
+  border: .0625rem solid var(--p-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--p-icon); font-size: 15px; flex-shrink: 0;
+}
+.search-row-body { min-width: 0; flex: 1; }
+.search-row-title {
+  font-size: var(--p-font-size-325);
+  font-weight: var(--p-font-weight-medium);
+  color: var(--p-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-row-title mark { background: var(--p-surface-highlight); color: var(--p-text-highlight); border-radius: 2px; padding: 0 1px; }
+.search-row-sub {
+  font-size: var(--p-font-size-275);
+  color: var(--p-text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-row-meta { font-size: var(--p-font-size-275); color: var(--p-text-secondary); flex-shrink: 0; }
+.search-empty {
+  padding: var(--p-space-1000) var(--p-space-400);
+  text-align: center; color: var(--p-text-secondary); font-size: var(--p-font-size-325);
+}
+.search-empty i { font-size: 28px; color: var(--p-icon-disabled); display: block; margin-bottom: var(--p-space-200); }
+
+@keyframes notifPopIn {
+  from { opacity: 0; transform: scale(.95) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+.topbar-search input {
+  width: 100%;
+  background: rgba(255,255,255,.1);
+  border: .0625rem solid rgba(255,255,255,.15);
+  border-radius: var(--p-border-radius-150);
+  padding: 0 2.5rem 0 2.5rem;
+  height: 2rem;
+  font-size: var(--p-font-size-325);
+  font-family: var(--p-font-family-sans);
+  color: #e3e3e3;
+  outline: none;
+  transition: background var(--p-motion-duration-100) var(--p-motion-ease), border-color var(--p-motion-duration-100) var(--p-motion-ease);
+  caret-color: #e3e3e3;
+}
+.topbar-search input::placeholder { color: #a8a8a8; }
+.topbar-search input:focus {
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.3);
+}
+
+/* ── Toolbar + Bulk bar: uniform button sizes everywhere ─── */
+.p-toolbar .btn-primary,
+.p-toolbar .btn-secondary,
+.p-toolbar select.btn-secondary,
+.pt-bulk-bar .btn-primary,
+.pt-bulk-bar .btn-secondary,
+.pt-bulk-actions .btn-primary,
+.pt-bulk-actions .btn-secondary,
+.page-hero-right .btn-primary,
+.page-hero-right .btn-secondary {
+  height: 2rem !important;
+  font-size: var(--p-font-size-325) !important;
+  padding: 0 var(--p-space-300) !important;
+  min-height: 2rem !important;
+}
+/* Filter button group keeps consistent height */
+.filter-btn-group .btn-secondary {
+  height: 2rem !important;
+  font-size: var(--p-font-size-325) !important;
+}
+
+/* ════ v10.26 refinements ════════════════════════════════════ */
+
+/* 1. Stat row gets the exact same card shadow as the metrics row */
+.stat-row, .metrics {
+  box-shadow: var(--p-shadow-100);
+}
+
+/* 2. Guaranteed breathing room after the last element (tables) on every page */
+.content::after, .page-content::after {
+  content: '';
+  display: block;
+  height: var(--p-space-1000);
+  flex-shrink: 0;
+}
+
+/* 3. Dashboard bento grid — three symmetrical panels that share equal height */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--p-space-400);
+  align-items: stretch;
+}
+.bento-grid .panel { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.bento-grid .panel .task-list,
+.bento-grid .panel .bento-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+@media (max-width: 1100px) { .bento-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px)  { .bento-grid { grid-template-columns: 1fr; } }
+
+/* 4. Clickable table rows (detail drawer) */
+tr.row-click { cursor: pointer; }
+tr.row-click:hover td { background: var(--p-surface-hover); }
+
+/* 5. Table skeleton loader */
+.skel-table { padding: var(--p-space-300) var(--p-space-400); }
+.skel-line {
+  height: 14px;
+  border-radius: var(--p-border-radius-100, .25rem);
+  background: var(--p-surface-secondary);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  margin: var(--p-space-300) 0;
+}
+
+/* ════ v10.28 refinements ════════════════════════════════════ */
+
+/* Stat rows carry the exact same border + shadow as p-cards and panels (all pages) */
+.stat-row, .metrics {
+  border: .0625rem solid var(--p-border);
+  box-shadow: var(--p-shadow-100);
+  background: var(--p-surface);
+}
+
+/* p-card headers lose their bottom divider (admin + employee) */
+.p-card-header { border-bottom: none; }
+
+/* Dashboard list items become mini-cards, matching p-card styling */
+.bento-grid .task-item,
+.bento-grid .inv-item,
+.bento-grid .activity-item {
+  background: var(--p-surface);
+  border: .0625rem solid var(--p-border);
+  border-radius: var(--p-border-radius-200);
+  box-shadow: var(--p-shadow-100);
+  margin-bottom: var(--p-space-200);
+  padding: var(--p-space-250) var(--p-space-300);
+}
+.bento-grid .task-item:last-child,
+.bento-grid .inv-item:last-child,
+.bento-grid .activity-item:last-child { margin-bottom: 0; }
+.bento-grid .panel .task-list,
+.bento-grid .panel .bento-scroll { padding: var(--p-space-100); }
+
+/* Notification popup — bigger, clearer icons */
+.notif-item-icon {
+  width: 34px; height: 34px;
+  font-size: 17px;
+  border-radius: var(--p-border-radius-200);
+}
+
+/* Consistent bottom spacing across admin (.content) and employee (.page-content) */
+.content, .page-content {
+  padding: var(--p-space-500) var(--p-space-600) var(--p-space-500);
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  flex: none;
+}
+.content::after, .page-content::after {
+  height: var(--p-space-800);
+}
+
+/* ════ v10.29 refinements ════════════════════════════════════ */
+
+/* Kill every remaining header divider inside cards (admin + employee) */
+.p-card-header, .p-table-wrap .p-card-header { border-bottom: none !important; }
+
+/* Notification rows: proper icon column + breathing room between icon and text */
+.notif-item {
+  grid-template-columns: 34px 1fr;
+  gap: var(--p-space-300);
+  align-items: center;
+}
+
+/* Dashboard bento panels tall enough to show 6 items */
+.bento-grid .panel { min-height: 396px; }
+
+/* ════ v10.30 ════ */
+
+/* ── Dashboard panels: identical item gaps across Tasks / Employees / Activity ── */
+.bento-grid .panel .task-list { gap: 0; padding: var(--p-space-100); }
+
+/* ── Calendar responsiveness (admin + employee) ── */
+@media (max-width: 1024px) {
+  .cal-page-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 720px) {
+  .cal-big-cell { min-height: 64px; padding: var(--p-space-100); }
+  .cal-big-hd { padding: var(--p-space-100); font-size: 10px; }
+  .cal-ev-pill { font-size: 9px; padding: 0 3px; }
+  .cal-day-num { font-size: 11px; }
+  .cal-big-cell.today .cal-day-num { width: 18px; height: 18px; }
+}
+
+/* ════ v10.32 — table-only horizontal scroll on every screen size ════
+   Tables that don't fit (e.g. Submitted Tasks) scroll inside their own
+   wrapper on web too — the page itself never scrolls sideways. */
+.p-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.p-table { min-width: 100%; }
+.p-table th { white-space: nowrap; }
+
+/* ════ v10.33 fixes ════════════════════════════════════════════ */
+
+/* 1. Polaris-styled checkboxes for ALL table checkboxes (any screen size) */
+.p-table input[type="checkbox"],
+.bulk-bar input[type="checkbox"] {
+  width: 18px; height: 18px;
+  appearance: none; -webkit-appearance: none;
+  border: .09375rem solid var(--p-border-strong);
+  border-radius: var(--p-border-radius-100);
+  background: var(--p-input-bg-surface);
+  cursor: pointer;
+  margin: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative; flex-shrink: 0; vertical-align: middle;
+  transition: background var(--p-motion-duration-100), border-color var(--p-motion-duration-100);
+}
+.p-table input[type="checkbox"]:checked {
+  background: var(--p-fill-brand);
+  border-color: var(--p-fill-brand);
+}
+.p-table input[type="checkbox"]:checked::after {
+  content: '';
+  display: block;
+  width: 4px; height: 7px;
+  border: 1.5px solid #fff; border-top: none; border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.p-table input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 2px #005bd326; }
+
+/* 2. Wide tables scroll inside their own wrapper — never the whole page.
+   Flex items default to min-width:auto, which let the wide Submitted Tasks
+   table push the entire layout wider than the viewport. */
+.main, .main-inner { min-width: 0; }
+.content, .page-content { max-width: 100%; }
+.p-table-wrap { max-width: 100%; }
+
+
+/* ════ v10.34 ═══════════════════════════════════════════════════ */
+
+/* 3. Toolbar, bulk bar, pagination and footer stay in place while the
+   table scrolls horizontally (they pin to the wrapper's visible edge). */
+.p-table-wrap .p-toolbar,
+.p-table-wrap .pt-bulk-bar,
+.p-table-wrap .pg-wrap,
+.p-table-wrap .p-table-footer,
+.p-table-wrap .p-card-header {
+  position: sticky;
+  left: 0;
+  max-width: 100%;
+}
+
+/* 4. Submitted Tasks: frozen first column on WEB too while scrolling.
+   Checkbox column pinned at 0 (exact 44px incl. its left padding),
+   identifying column pinned flush at 44px. */
+.p-table.freeze-first th:first-child,
+.p-table.freeze-first td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--p-surface);
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  padding: 0 0 0 var(--p-space-300) !important;
+  text-align: left;
+}
+.p-table.freeze-first th:nth-child(2),
+.p-table.freeze-first td:nth-child(2) {
+  position: sticky;
+  left: 44px;
+  z-index: 2;
+  background: var(--p-surface);
+  box-shadow: 2px 0 6px rgba(0,0,0,.08);
+  min-width: 160px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.p-table.freeze-first thead th:first-child,
+.p-table.freeze-first thead th:nth-child(2) { z-index: 4; }
+.p-table.freeze-first tr:hover td:first-child,
+.p-table.freeze-first tr:hover td:nth-child(2),
+.p-table.freeze-first tr.row-click:hover td:first-child,
+.p-table.freeze-first tr.row-click:hover td:nth-child(2) { background: var(--p-surface-hover); }

@@ -65,7 +65,6 @@ const DEFAULT_NOTIFS = [
 
 export default function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth('admin');
-  const [notifs, setNotifs] = useState(DEFAULT_NOTIFS);
 
   if (loading || !user) {
     return (
@@ -78,7 +77,7 @@ export default function AdminLayoutInner({ children }: { children: React.ReactNo
       <Sidebar sections={ADMIN_NAV} user={user} onLogout={logout} />
       <div className="main">
         <div className="main-inner">
-          <Topbar searchPages={SEARCH_PAGES} notifs={notifs} onNotifsUpdate={setNotifs} />
+          <Topbar searchPages={SEARCH_PAGES} />
           <div style={{ flex:1 }}>{children}</div>
         </div>
       </div>

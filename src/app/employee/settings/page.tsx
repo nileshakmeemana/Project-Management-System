@@ -1,8 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { apiCall, getUser, setSession, getToken } from '@/lib/api';
-
-interface Pref { key: string; label: string; desc: string; checked: boolean; }
+import { reloadPrefs } from '@/lib/prefs';
 
 export default function EmployeeSettingsPage() {
   const user = getUser();
@@ -13,24 +12,17 @@ export default function EmployeeSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast]   = useState('');
   const [pw, setPw]         = useState({ current: '', newPw: '', confirm: '' });
-  const [prefs, setPrefs]   = useState<Pref[]>([
-    { key: 'email_notifs',    label: 'Email Notifications',  desc: 'Receive email updates on task status changes', checked: true  },
-    { key: 'dark_mode',       label: 'Dark Mode',            desc: 'Switch between light and dark interface',       checked: false },
-    { key: 'compact_table',   label: 'Compact Table View',   desc: 'Show more rows with reduced row height',        checked: false },
-  ]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2400); };
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const togglePref = (key: string) => {
-    setPrefs(p => p.map(pref => pref.key === key ? { ...pref, checked: !pref.checked } : pref));
-  };
 
   const saveProfile = async () => {
     setSaving(true);
     try {
       const d = await apiCall('PATCH', '/users/me', { name: form.name, position: form.position, phone: form.phone, currency: form.currency, payType: form.payType });
       if (getToken()) setSession(getToken()!, d.user);
+      await reloadPrefs(); // convert the whole dashboard into the new currency
       showToast('Profile saved!');
     } catch (err: any) { showToast(err.message || 'Save failed'); }
     finally { setSaving(false); }
@@ -85,27 +77,6 @@ export default function EmployeeSettingsPage() {
               </select>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Preferences — working toggle switches */}
-      <div className="p-card" style={{ marginBottom: 'var(--p-space-400)' }}>
-        <div className="p-card-header"><div className="p-card-title"><i className="ti ti-adjustments-horizontal" /> <span className="sec-t">Preferences</span></div></div>
-        <div className="p-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {prefs.map(pref => (
-            <div key={pref.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--p-space-300) 0', borderBottom: '.0625rem solid var(--p-border-subdued)' }}>
-              <div>
-                <div style={{ fontWeight: 'var(--p-font-weight-medium)' }}>{pref.label}</div>
-                <div style={{ fontSize: 'var(--p-font-size-275)', color: 'var(--p-text-secondary)', marginTop: 2 }}>{pref.desc}</div>
-              </div>
-              {/* Exact toggle structure from HTML source */}
-              <label className="toggle" onClick={() => togglePref(pref.key)}>
-                <input type="checkbox" checked={pref.checked} onChange={() => togglePref(pref.key)} />
-                <span className="toggle-track" />
-                <span className="toggle-thumb" />
-              </label>
-            </div>
-          ))}
         </div>
       </div>
 

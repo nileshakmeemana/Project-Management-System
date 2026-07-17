@@ -1,14 +1,18 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { apiCall } from '@/lib/api';
+import { useData } from '@/hooks/useData';
 import BulkBar from '@/components/BulkBar';
 import Pagination from '@/components/Pagination';
+import TableSkeleton from '@/components/TableSkeleton';
+import { fmtAmt, fmtDate, usePrefs } from '@/lib/prefs';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 export default function ClientsPage() {
-  const [clients,  setClients]  = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  usePrefs(); // re-render on currency / date-format changes
+  const { data: clientsData, loading, refresh: refreshClients } = useData('/clients');
+  const clients = clientsData?.clients || [];
   const [search,   setSearch]   = useState('');
   const [filter,   setFilter]   = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -20,11 +24,7 @@ export default function ClientsPage() {
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2400); };
 
-  const fetchClients = useCallback(async () => {
-    try { const d = await apiCall('GET', '/clients'); setClients(d.clients || []); }
-    catch { setClients([]); } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { fetchClients(); }, []);
+  const fetchClients = refreshClients;
 
   const openModal = (c?: any) => {
     setEditId(c?._id || null);
@@ -58,12 +58,12 @@ export default function ClientsPage() {
   const someChecked = paginated.some(c => selected.has(c._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/clients/${id}`, { status }); } catch {} }
+    for (const id of selected) { try { await apiCall('PATCH', `/clients/${id}`, { status }); } catch {} }
     await fetchClients(); setSelected(new Set()); showToast(`${selected.size} client(s) set to ${status}`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} client(s)?`)) return;
-    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/clients/${id}`); } catch {} }
+    for (const id of selected) { try { await apiCall('DELETE', `/clients/${id}`); } catch {} }
     await fetchClients(); setSelected(new Set()); showToast('Deleted.');
   };
 
@@ -78,6 +78,7 @@ export default function ClientsPage() {
       <div className="stat-row">
         <div className="stat-card"><div className="stat-label"><i className="ti ti-users" /> <span className="sec-t">Total clients</span></div><div className="stat-value">{stats.total}</div></div>
         <div className="stat-card"><div className="stat-label"><i className="ti ti-circle-check" /> <span className="sec-t">Active</span></div><div className="stat-value up">{stats.active}</div></div>
+        <div className="stat-card"><div className="stat-label"><i className="ti ti-currency-dollar" /> <span className="sec-t">Total billed</span></div><div className="stat-value">{fmtAmt(clients.reduce((s: number, cl: any) => s + (cl.totalBilled || 0), 0))}</div></div>
         <div className="stat-card"><div className="stat-label"><i className="ti ti-circle-x" /> <span className="sec-t">Inactive</span></div><div className="stat-value">{stats.inactive}</div></div>
       </div>
       <div className="p-table-wrap">
@@ -99,7 +100,7 @@ export default function ClientsPage() {
           onClear={() => setSelected(new Set())}
         />
 
-        {loading ? <div style={{ padding:'3rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</div> : (
+        {loading ? <TableSkeleton rows={6} cols={5} /> : (
         <table className="p-table">
           <thead><tr>
             <th className="cb-col"><input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked; }} onChange={e => selectAll(e.target.checked)} style={{ cursor:'pointer' }} /></th>
@@ -131,8 +132,8 @@ export default function ClientsPage() {
           </tbody>
         </table>)}
         <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
-        <div className="p-table-footer">{filtered.length} client{filtered.length !== 1 ? 's' : ''}{selected.size > 0 ? ` · ${selected.size} selected` : ''}</div>
-      </div>
+        <div className="p-table-footer">{paginated.length} client{filtered.length !== 1 ? 's' : ''}{selected.size > 0 ? ` · ${selected.size} selected` : ''}</div>
+        </div>
 
       {modal && (
         <div className="p-modal-bg open" onClick={() => setModal(false)}>

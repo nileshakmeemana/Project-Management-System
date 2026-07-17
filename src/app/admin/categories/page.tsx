@@ -1,14 +1,16 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { apiCall } from '@/lib/api';
+import { useData } from '@/hooks/useData';
 import BulkBar from '@/components/BulkBar';
 import Pagination from '@/components/Pagination';
+import TableSkeleton from '@/components/TableSkeleton';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 export default function CategoriesPage() {
-  const [cats,     setCats]     = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const { data: catsData, loading, refresh: refreshCats } = useData('/categories');
+  const cats = catsData?.categories || [];
   const [search,   setSearch]   = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page,     setPage]     = useState(1);
@@ -19,11 +21,7 @@ export default function CategoriesPage() {
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2400); };
 
-  const fetchCats = useCallback(async () => {
-    try { const d = await apiCall('GET', '/categories'); setCats(d.categories || []); }
-    catch { setCats([]); } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { fetchCats(); }, []);
+  const fetchCats = refreshCats;
 
   const openModal = (c?: any) => {
     setEditId(c?._id || null);
@@ -52,12 +50,12 @@ export default function CategoriesPage() {
   const someChecked = paginated.some(c => selected.has(c._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/categories/${id}`, { status }); } catch {} }
+    for (const id of selected) { try { await apiCall('PATCH', `/categories/${id}`, { status }); } catch {} }
     await fetchCats(); setSelected(new Set()); showToast(`Updated ${selected.size} categor${selected.size===1?'y':'ies'}`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} categor${selected.size===1?'y':'ies'}?`)) return;
-    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/categories/${id}`); } catch {} }
+    for (const id of selected) { try { await apiCall('DELETE', `/categories/${id}`); } catch {} }
     await fetchCats(); setSelected(new Set()); showToast('Deleted.');
   };
 
@@ -81,7 +79,7 @@ export default function CategoriesPage() {
           onClear={() => setSelected(new Set())}
         />
 
-        {loading ? <div style={{ padding:'3rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</div> : (
+        {loading ? <TableSkeleton rows={6} cols={4} /> : (
         <table className="p-table" style={{ tableLayout:'auto', width:'100%' }}>
           <thead><tr>
             <th className="cb-col"><input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked; }} onChange={e => selectAll(e.target.checked)} style={{ cursor:'pointer' }} /></th>
@@ -109,8 +107,8 @@ export default function CategoriesPage() {
           </tbody>
         </table>)}
         <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
-        <div className="p-table-footer">{filtered.length} categor{filtered.length!==1?'ies':'y'}{selected.size>0?` · ${selected.size} selected`:''}</div>
-      </div>
+        <div className="p-table-footer">{paginated.length} categor{filtered.length!==1?'ies':'y'}{selected.size>0?` · ${selected.size} selected`:''}</div>
+        </div>
 
       {modal && (
         <div className="p-modal-bg open" onClick={() => setModal(false)}>

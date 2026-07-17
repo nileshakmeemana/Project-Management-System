@@ -4,43 +4,77 @@ interface PaginationProps {
   page: number;
   total: number;
   pageSize?: number;
-  onChange: (page: number) => void;
+  onChange: (p: number) => void;
 }
 
-export default function Pagination({ page, total, pageSize = 50, onChange }: PaginationProps) {
-  const pages = Math.ceil(total / pageSize);
-  if (pages <= 1) return null;
+export default function Pagination({ page, total, pageSize = 30, onChange }: PaginationProps) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
 
-  const getPages = () => {
-    const result: (number | '...')[] = [];
-    if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
-    result.push(1);
-    if (page > 3) result.push('...');
-    for (let i = Math.max(2, page - 1); i <= Math.min(pages - 1, page + 1); i++) result.push(i);
-    if (page < pages - 2) result.push('...');
-    result.push(pages);
-    return result;
-  };
+  const from = (page - 1) * pageSize + 1;
+  const to   = Math.min(page * pageSize, total);
+
+  // Build page buttons — show at most 5 around current page
+  const pages: (number | '...')[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      gap: 'var(--p-space-100)', padding: 'var(--p-space-300) var(--p-space-400)',
+    <div className="pg-wrap" style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 'var(--p-space-100)',
+      padding: 'var(--p-space-300) var(--p-space-400)',
       borderTop: '.0625rem solid var(--p-border-subdued)',
     }}>
-      <button className="pg-btn" disabled={page === 1} onClick={() => onChange(page - 1)}>
+      {/* Prev */}
+      <button
+        className="pg-btn"
+        disabled={page === 1}
+        onClick={() => onChange(page - 1)}
+        aria-label="Previous page"
+      >
         <i className="ti ti-chevron-left" style={{ fontSize: 13 }} />
       </button>
-      {getPages().map((p, i) =>
+
+      {/* Page numbers */}
+      {pages.map((p, i) =>
         p === '...'
-          ? <span key={`e${i}`} className="pg-ellipsis">…</span>
-          : <button key={p} className={`pg-btn${page === p ? ' active' : ''}`} onClick={() => onChange(p as number)}>{p}</button>
+          ? <span key={`ellipsis-${i}`} style={{ fontSize: 'var(--p-font-size-275)', color: 'var(--p-text-secondary)', padding: '0 2px' }}>…</span>
+          : <button
+              key={p}
+              className={`pg-btn${p === page ? ' active' : ''}`}
+              onClick={() => onChange(p as number)}
+              aria-current={p === page ? 'page' : undefined}
+            >{p}</button>
       )}
-      <button className="pg-btn" disabled={page === pages} onClick={() => onChange(page + 1)}>
+
+      {/* Next */}
+      <button
+        className="pg-btn"
+        disabled={page === totalPages}
+        onClick={() => onChange(page + 1)}
+        aria-label="Next page"
+      >
         <i className="ti ti-chevron-right" style={{ fontSize: 13 }} />
       </button>
-      <span style={{ fontSize: 'var(--p-font-size-275)', color: 'var(--p-text-secondary)', marginLeft: 'var(--p-space-200)' }}>
-        {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+
+      {/* "1–30 of 50" count */}
+      <span style={{
+        fontSize: 'var(--p-font-size-275)',
+        color: 'var(--p-text-secondary)',
+        marginLeft: 'var(--p-space-200)',
+        whiteSpace: 'nowrap',
+      }}>
+        {from}–{to} of {total}
       </span>
     </div>
   );

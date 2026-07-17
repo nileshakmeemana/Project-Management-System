@@ -27,17 +27,47 @@ exports.getTasks = async (req, res) => {
 };
 
 // POST /api/tasks
+// - Employee: submits own completed work → status 'Pending Review'
+// - Admin: assigns a task to one or many employees → status 'Assigned' (one task per employee)
 exports.createTask = async (req, res) => {
   try {
-    const { title, clientName, category, hours, requestedAmount, currency, description, workLink, dateCompleted } = req.body;
+    const { title, clientName, category, description, employees, employee, projects, projectNames } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
-    const task = await Task.create({
-      title, clientName, category, hours, requestedAmount, currency,
-      description, workLink, dateCompleted,
-      employee: req.user._id, status: 'Pending Review',
-    });
-    await log('Submitted task', req.user, title);
-    res.status(201).json({ task });
+
+    // Only admins create tasks — employees submit work to tasks assigned to them
+    if (req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Employees cannot create tasks. Submit work to a task assigned to you instead.' });
+
+    const ids = Array.isArray(employees) && employees.length ? employees : (employee ? [employee] : []);
+    if (!ids.length || ids.some(id => !id)) return res.status(400).json({ error: 'At least one employee is required' });
+    const created = await Task.insertMany(ids.map(id => ({
+      title, clientName: clientName || '', category: category || '',
+      description: description || '',
+      projects: Array.isArray(projects) ? projects.filter(Boolean) : [],
+      projectNames: Array.isArray(projectNames) ? projectNames : [],
+      employee: id, assignedBy: req.user._id, status: 'Assigned',
+    })));
+    await log(`Assigned task to ${created.length} employee(s)`, req.user, title);
+    res.status(201).json({ tasks: created, task: created[0] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// PATCH /api/tasks/:id/respond  — employee accepts or declines an assigned task
+exports.respondTask = async (req, res) => {
+  try {
+    const { action } = req.body; // 'accept' | 'decline'
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    if (task.employee.toString() !== req.user._id.toString())
+      return res.status(403).json({ error: 'Forbidden' });
+    if (task.status !== 'Assigned')
+      return res.status(400).json({ error: 'Task is not awaiting acceptance' });
+    if (action === 'accept') { task.status = 'Accepted'; task.acceptedAt = new Date(); }
+    else if (action === 'decline') { task.status = 'Declined'; task.declinedAt = new Date(); }
+    else return res.status(400).json({ error: 'Invalid action' });
+    await task.save();
+    await log(`Task ${action}ed`, req.user, task.title);
+    res.json({ task });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
@@ -62,10 +92,29 @@ exports.updateTask = async (req, res) => {
       if (!['Pending Review','Changes Requested'].includes(task.status))
         return res.status(400).json({ error: 'Cannot edit approved or paid task' });
     }
-    const allowed = ['title','clientName','category','hours','requestedAmount','currency','description','workLink','dateCompleted'];
+    const allowed = ['title','clientName','category','hours','requestedAmount','currency','description','workLink','dateCompleted','customFields','projects','projectNames'];
+    if (req.user.role === 'admin') allowed.push('employee','status','approvedAmount');
     allowed.forEach(f => { if (req.body[f] !== undefined) task[f] = req.body[f]; });
     await task.save();
     await log('Updated task', req.user, task.title);
+    res.json({ task });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// PATCH /api/tasks/:id/submit  — employee submits completed work for an assigned task
+exports.submitWork = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    if (task.employee.toString() !== req.user._id.toString())
+      return res.status(403).json({ error: 'Forbidden' });
+    if (!['Assigned','Accepted','Changes Requested'].includes(task.status))
+      return res.status(400).json({ error: 'This task cannot receive a submission in its current status' });
+    const allowed = ['hours','requestedAmount','currency','description','workLink','dateCompleted','customFields','projects','projectNames'];
+    allowed.forEach(f => { if (req.body[f] !== undefined) task[f] = req.body[f]; });
+    task.status = 'Pending Review';
+    await task.save();
+    await log('Submitted work', req.user, task.title);
     res.json({ task });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -79,8 +128,13 @@ exports.reviewTask = async (req, res) => {
     task.status = status;
     if (approvedAmount !== undefined) task.approvedAmount = approvedAmount;
     if (adminNote !== undefined) task.adminNote = adminNote;
+    // Marking as Paid means the work is approved — make sure an approved amount exists
+    if (['Approved','Paid'].includes(status) && !task.approvedAmount) {
+      task.approvedAmount = task.requestedAmount || 0;
+    }
     task.reviewedBy = req.user._id;
     task.reviewedAt = new Date();
+    if (status === 'Paid') task.paidAt = new Date();
     await task.save();
     await log(`Task ${status.toLowerCase()}`, req.user, task.title);
     res.json({ task });

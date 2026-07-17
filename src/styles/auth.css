@@ -130,12 +130,12 @@ body {
   margin-bottom: var(--p-space-100);
 }
 .field label span { color: var(--p-text-secondary); font-weight: var(--p-font-weight-regular); }
-.input-wrap { position: relative; }
-.input-wrap > i.lead {
+.auth-wrapper .input-wrap { position: relative; }
+.auth-wrapper .input-wrap > i.lead {
   position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
   font-size: 14px; color: var(--p-icon-secondary); pointer-events: none;
 }
-.p-input {
+.auth-wrapper .p-input {
   background: var(--p-input-bg-surface);
   border: .0625rem solid var(--p-input-border);
   border-radius: var(--p-border-radius-150);
@@ -147,15 +147,15 @@ body {
   outline: none; width: 100%;
   transition: border-color .1s, box-shadow .1s;
 }
-select.p-input { padding-left: 30px; cursor: pointer; appearance: none; }
-.input-wrap > i.trail-caret {
+.auth-wrapper select.p-input { padding-left: 30px; cursor: pointer; appearance: none; }
+.auth-wrapper .input-wrap > i.trail-caret {
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
   font-size: 13px; color: var(--p-icon-secondary); pointer-events: none;
 }
-.p-input:hover { border-color: var(--p-input-border-hover); }
-.p-input:focus { border-color: var(--p-border-focus); box-shadow: 0 0 0 2px #005bd326; }
-.field.invalid .p-input { border-color: #e22c38; background: #fffafb; }
-.field.invalid .p-input:focus { box-shadow: 0 0 0 2px #c70a2426; }
+.auth-wrapper .p-input:hover { border-color: var(--p-input-border-hover); }
+.auth-wrapper .p-input:focus { border-color: var(--p-border-focus); box-shadow: 0 0 0 2px #005bd326; }
+.auth-wrapper .field.invalid .p-input { border-color: #e22c38; background: #fffafb; }
+.auth-wrapper .field.invalid .p-input:focus { box-shadow: 0 0 0 2px #c70a2426; }
 .field-error {
   display: none;
   align-items: center; gap: 5px;
@@ -173,7 +173,7 @@ select.p-input { padding-left: 30px; cursor: pointer; appearance: none; }
   border-radius: var(--p-border-radius-150);
 }
 .eye-btn:hover { background: var(--p-surface-hover); color: var(--p-icon); }
-.input-wrap.has-eye .p-input { padding-right: 36px; }
+.auth-wrapper .input-wrap.has-eye .p-input { padding-right: 36px; }
 
 /* password strength */
 .pw-meter { display: flex; gap: 4px; margin-top: var(--p-space-150); }
@@ -192,7 +192,7 @@ a.link { color: var(--p-text-link); text-decoration: none; font-size: var(--p-fo
 a.link:hover { text-decoration: underline; }
 
 /* ── Buttons ── */
-.btn-primary {
+.auth-wrapper .btn-primary {
   display: inline-flex; align-items: center; justify-content: center;
   gap: var(--p-space-150);
   background: var(--p-fill-brand);
@@ -208,9 +208,9 @@ a.link:hover { text-decoration: underline; }
   box-shadow: var(--p-shadow-button-primary);
   transition: filter .1s var(--p-motion-ease);
 }
-.btn-primary:hover { filter: brightness(1.18); }
-.btn-primary:active { filter: brightness(.95); }
-.btn-secondary {
+.auth-wrapper .btn-primary:hover { filter: brightness(1.18); }
+.auth-wrapper .btn-primary:active { filter: brightness(.95); }
+.auth-wrapper .btn-secondary {
   display: inline-flex; align-items: center; justify-content: center;
   gap: var(--p-space-150);
   background: var(--p-surface);
@@ -224,7 +224,7 @@ a.link:hover { text-decoration: underline; }
   cursor: pointer;
   box-shadow: var(--p-shadow-button);
 }
-.btn-secondary:hover { background: var(--p-surface-hover); }
+.auth-wrapper .btn-secondary:hover { background: var(--p-surface-hover); }
 
 /* ── Divider / banner / demo ── */
 .divider { display: flex; align-items: center; gap: var(--p-space-300); margin: var(--p-space-500) 0; color: var(--p-text-secondary); font-size: var(--p-font-size-300); }
@@ -271,7 +271,7 @@ a.link:hover { text-decoration: underline; }
 @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ── Toast ── */
-.toast {
+.auth-wrapper .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(70px);
   background: #303030; color: #fff;
   font-size: var(--p-font-size-325);
@@ -282,8 +282,8 @@ a.link:hover { text-decoration: underline; }
   transition: transform .25s var(--p-motion-ease);
   z-index: 100;
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
-.toast i { color: #affebf; }
+.auth-wrapper .toast.show { transform: translateX(-50%) translateY(0); }
+.auth-wrapper .toast i { color: #affebf; }
 
 @media (max-width: 460px) { .auth-card { padding: var(--p-space-600) var(--p-space-500); } }
 /* ── Google OAuth button ── */

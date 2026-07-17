@@ -36,7 +36,7 @@ export function buildRange(preset: PeriodPreset | 'custom', customStart?: string
     case 'ytd':       return { preset, label, start: new Date(now.getFullYear(), 0, 1), end: new Date() };
     case 'all':       return { preset, label };
     case 'custom':
-      return { preset, label: 'Custom', start: customStart ? new Date(customStart) : undefined, end: customEnd ? new Date(customEnd) : undefined };
+      return { preset, label: 'Custom', start: customStart ? new Date(customStart) : undefined, end: customEnd ? new Date(new Date(customEnd).getTime() + 86399999) : undefined };
     default:          return { preset: 'all', label: 'All time' };
   }
 }

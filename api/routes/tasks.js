@@ -6,6 +6,8 @@ router.get('/',                      c.getTasks);
 router.post('/',                     c.createTask);
 router.get('/:id',                   c.getTask);
 router.patch('/:id',                 c.updateTask);
+router.patch('/:id/respond',         c.respondTask);
+router.patch('/:id/submit',          c.submitWork);
 router.patch('/:id/review',          adminOnly, c.reviewTask);
 router.delete('/:id',                c.deleteTask);
 module.exports = router;

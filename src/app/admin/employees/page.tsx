@@ -1,15 +1,20 @@
 'use client';
+import { NotifStore } from '@/lib/notifications';
 import { useEffect, useState, useCallback } from 'react';
 import { apiCall } from '@/lib/api';
+import { useData } from '@/hooks/useData';
 import BulkBar from '@/components/BulkBar';
 import Pagination from '@/components/Pagination';
+import TableSkeleton from '@/components/TableSkeleton';
+import { fmtAmt, fmtDate, usePrefs } from '@/lib/prefs';
 
 const STATUS_BADGE: Record<string,string> = {active:'badge-paid',inactive:'badge-high',pending:'badge-pending'};
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  usePrefs(); // re-render on currency / date-format changes
+  const { data: empData, loading, refresh: refreshEmployees } = useData('/users');
+  const employees = (empData?.users || []).filter((u: any) => u.role === 'employee');
   const [search,    setSearch]    = useState('');
   const [filter,    setFilter]    = useState('');
   const [selected,  setSelected]  = useState<Set<string>>(new Set());
@@ -21,11 +26,7 @@ export default function EmployeesPage() {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(()=>setToast(''),2400); };
 
-  const fetchEmployees = useCallback(async () => {
-    try { const d = await apiCall('GET','/users'); setEmployees((d.users||[]).filter((u:any)=>u.role==='employee')); }
-    catch { setEmployees([]); } finally { setLoading(false); }
-  }, []);
-  useEffect(() => { fetchEmployees(); }, []);
+  const fetchEmployees = refreshEmployees;
 
   const openModal = (e?: any) => {
     setEditId(e?._id||null);
@@ -36,6 +37,7 @@ export default function EmployeesPage() {
     try {
       if (editId) await apiCall('PATCH',`/users/${editId}`,{name:form.name,position:form.position,currency:form.currency,payType:form.payType,status:form.status});
       else await apiCall('POST','/auth/register',{name:form.name,email:form.email,password:form.password||'emp123',role:'employee',position:form.position});
+      NotifStore.employeeAdded(form.name);
       setModal(false); await fetchEmployees(); showToast(editId?'Employee updated!':'Employee added!');
     } catch(e:any) { showToast(e.message); }
   };
@@ -59,16 +61,21 @@ export default function EmployeesPage() {
   const someChecked = paginated.some(e=>selected.has(e._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of Array.from(selected)) { try { await apiCall('PATCH',`/users/${id}`,{status}); } catch {} }
+    for (const id of selected) { try { await apiCall('PATCH',`/users/${id}`,{status}); } catch {} }
     await fetchEmployees(); setSelected(new Set()); showToast(`${selected.size} employee(s) set to ${status}`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Remove ${selected.size} employee(s)?`)) return;
-    for (const id of Array.from(selected)) { try { await apiCall('DELETE',`/users/${id}`); } catch {} }
+    for (const id of selected) { try { await apiCall('DELETE',`/users/${id}`); } catch {} }
     await fetchEmployees(); setSelected(new Set()); showToast('Removed.');
   };
 
-  const stats = { total:employees.length, active:employees.filter(e=>e.status==='active').length, pending:employees.filter(e=>e.status==='pending').length };
+  const stats = {
+    total: employees.length,
+    active: employees.filter((e: any) => e.status === 'active').length,
+    depts: new Set(employees.map((e: any) => e.department || e.position || 'General')).size,
+    avgSalary: employees.length ? Math.round(employees.reduce((s: number, e: any) => s + (e.salary || e.baseSalary || 0), 0) / employees.length) : 0,
+  };
 
   return (
     <div className="content">
@@ -77,9 +84,10 @@ export default function EmployeesPage() {
         <div className="page-hero-right"><button className="btn-primary" onClick={()=>openModal()}><i className="ti ti-plus"/> Add employee</button></div>
       </div>
       <div className="stat-row">
-        <div className="stat-card"><div className="stat-label"><i className="ti ti-users-group"/> <span className="sec-t">Total</span></div><div className="stat-value">{stats.total}</div></div>
-        <div className="stat-card"><div className="stat-label"><i className="ti ti-circle-check"/> <span className="sec-t">Active</span></div><div className="stat-value up">{stats.active}</div></div>
-        <div className="stat-card"><div className="stat-label"><i className="ti ti-clock"/> <span className="sec-t">Pending</span></div><div className="stat-value">{stats.pending}</div></div>
+        <div className="stat-card"><div className="stat-label"><i className="ti ti-users-group" /> <span className="sec-t">Total employees</span></div><div className="stat-value">{stats.total}</div></div>
+        <div className="stat-card"><div className="stat-label"><i className="ti ti-circle-check" /> <span className="sec-t">Active</span></div><div className="stat-value up">{stats.active}</div></div>
+        <div className="stat-card"><div className="stat-label"><i className="ti ti-building" /> <span className="sec-t">Departments</span></div><div className="stat-value">{stats.depts}</div></div>
+        <div className="stat-card"><div className="stat-label"><i className="ti ti-cash" /> <span className="sec-t">Avg salary</span></div><div className="stat-value">{fmtAmt(stats.avgSalary)}</div></div>
       </div>
       <div className="p-table-wrap">
         <div className="p-toolbar">
@@ -102,7 +110,7 @@ export default function EmployeesPage() {
           onClear={() => setSelected(new Set())}
         />
 
-        {loading ? <div style={{padding:'3rem',textAlign:'center',color:'var(--p-text-secondary)'}}>Loading…</div> : (
+        {loading ? <TableSkeleton rows={6} cols={6} /> : (
         <table className="p-table">
           <thead><tr>
             <th className="cb-col">
@@ -141,8 +149,8 @@ export default function EmployeesPage() {
           </tbody>
         </table>)}
         <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
-        <div className="p-table-footer">{filtered.length} employee{filtered.length!==1?'s':''}{selected.size>0?` · ${selected.size} selected`:''}</div>
-      </div>
+        <div className="p-table-footer">{paginated.length} employee{filtered.length!==1?'s':''}{selected.size>0?` · ${selected.size} selected`:''}</div>
+        </div>
 
       {modal&&(<div className="p-modal-bg open" onClick={()=>setModal(false)}><div className="p-modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
         <div className="p-modal-hd"><h3>{editId?'Edit employee':'Add employee'}</h3><button className="p-modal-x" onClick={()=>setModal(false)}><i className="ti ti-x"/></button></div>

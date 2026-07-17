@@ -1,16 +1,18 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { apiCall } from '@/lib/api';
+import { useData } from '@/hooks/useData';
 import BulkBar from '@/components/BulkBar';
 import Pagination from '@/components/Pagination';
+import TableSkeleton from '@/components/TableSkeleton';
+import { fmtAmt, fmtDate, usePrefs } from '@/lib/prefs';
 
-const fmtAmt = (v: number, c = 'LKR') => { try { return new Intl.NumberFormat('en-US',{style:'currency',currency:c,maximumFractionDigits:0}).format(v||0); } catch { return `${c} ${(v||0).toLocaleString()}`; }};
 const SB: Record<string,string> = { 'in-progress':'badge-pending', 'completed':'badge-paid', 'on-hold':'badge-med' };
 const SL: Record<string,string> = { 'in-progress':'In Progress', 'completed':'Completed', 'on-hold':'On Hold' };
-const CLIENTS = ['Second Page','Nail Toolz','Dental On Demand','ANVAYA Wellness','Amaree Collective','Port Stephens'];
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 export default function AdminProjectsPage() {
+  usePrefs(); // re-render on currency / date-format changes
   const [projects,  setProjects]  = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -20,20 +22,29 @@ export default function AdminProjectsPage() {
   const [page,      setPage]      = useState(1);
   const [modal,     setModal]     = useState(false);
   const [editId,    setEditId]    = useState<string|null>(null);
-  const [form,      setForm]      = useState({ name:'', clientName:'', employee:'', status:'in-progress', progress:0, value:0, currency:'LKR', due:'' });
+  const [form,      setForm]      = useState({ name:'', clientName:'', employees:[] as string[], status:'in-progress', progress:0, value:0, currency:'LKR', due:'' });
   const [toast,     setToast]     = useState('');
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2400); };
 
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const fetchAll = useCallback(async () => {
-    const [p, u] = await Promise.all([apiCall('GET', '/projects'), apiCall('GET', '/users')]);
-    setProjects(p.projects || []); setEmployees((u.users || []).filter((u: any) => u.role === 'employee')); setLoading(false);
+    const [p, u, t, c] = await Promise.all([
+      apiCall('GET', '/projects'), apiCall('GET', '/users'),
+      apiCall('GET', '/tasks?limit=500').catch(() => ({ tasks: [] })),
+      apiCall('GET', '/clients').catch(() => ({ clients: [] })),
+    ]);
+    setProjects(p.projects || []); setEmployees((u.users || []).filter((u: any) => u.role === 'employee'));
+    setTasks(t.tasks || []); setClients(c.clients || []); setLoading(false);
   }, []);
+  const taskCount = (projectId: string) => tasks.filter((t: any) => (t.projects || []).some((x: any) => (x?._id || x) === projectId)).length;
   useEffect(() => { fetchAll(); }, []);
 
   const openModal = (p?: any) => {
     setEditId(p?._id || null);
-    setForm(p ? { name:p.name, clientName:p.clientName||'', employee:p.employee?._id||p.employee||'', status:p.status||'in-progress', progress:p.progress||0, value:p.value||0, currency:p.currency||'LKR', due:p.due?.slice(0,10)||'' } : { name:'', clientName:'', employee:'', status:'in-progress', progress:0, value:0, currency:'LKR', due:'' });
+    const empIds = p ? ((p.employees?.length ? p.employees : [p.employee]).filter(Boolean).map((e: any) => e?._id || e)) : [];
+    setForm(p ? { name:p.name, clientName:p.clientName||'', employees:empIds, status:p.status||'in-progress', progress:p.progress||0, value:p.value||0, currency:p.currency||'LKR', due:p.due?.slice(0,10)||'' } : { name:'', clientName:'', employees:[], status:'in-progress', progress:0, value:0, currency:'LKR', due:'' });
     setModal(true);
   };
   const save = async () => {
@@ -62,12 +73,12 @@ export default function AdminProjectsPage() {
   const someChecked = paginated.some(p => selected.has(p._id)) && !allChecked;
 
   const bulkSetStatus = async (status: string) => {
-    for (const id of Array.from(selected)) { try { await apiCall('PATCH', `/projects/${id}`, { status }); } catch {} }
+    for (const id of selected) { try { await apiCall('PATCH', `/projects/${id}`, { status }); } catch {} }
     await fetchAll(); setSelected(new Set()); showToast(`Updated ${selected.size} project(s)`);
   };
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} project(s)?`)) return;
-    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/projects/${id}`); } catch {} }
+    for (const id of selected) { try { await apiCall('DELETE', `/projects/${id}`); } catch {} }
     await fetchAll(); setSelected(new Set()); showToast('Deleted.');
   };
 
@@ -104,7 +115,7 @@ export default function AdminProjectsPage() {
           onClear={() => setSelected(new Set())}
         />
 
-        {loading ? <div style={{ padding:'3rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</div> : (
+        {loading ? <TableSkeleton rows={6} cols={6} /> : (
         <table className="p-table">
           <thead><tr>
             <th className="cb-col"><input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked; }} onChange={e => selectAll(e.target.checked)} style={{ cursor:'pointer' }} /></th>
@@ -112,19 +123,20 @@ export default function AdminProjectsPage() {
             <th style={{ textAlign:'left', minWidth:120 }}>Client</th>
             <th style={{ textAlign:'left', minWidth:140 }}>Assigned To</th>
             <th style={{ textAlign:'left', minWidth:140 }}>Progress</th>
+            <th className="td-num" style={{ minWidth:60 }}>Tasks</th>
             <th className="td-num" style={{ minWidth:110 }}>Value</th>
             <th style={{ textAlign:'left', minWidth:110 }}>Due</th>
             <th style={{ textAlign:'left', minWidth:110 }}>Status</th>
             <th style={{ textAlign:'left', minWidth:60 }}></th>
           </tr></thead>
           <tbody>
-            {paginated.length === 0 && <tr><td colSpan={9} style={{ textAlign:'center', padding:'var(--p-space-800)', color:'var(--p-text-secondary)' }}>No projects found.</td></tr>}
+            {paginated.length === 0 && <tr><td colSpan={10} style={{ textAlign:'center', padding:'var(--p-space-800)', color:'var(--p-text-secondary)' }}>No projects found.</td></tr>}
             {paginated.map(p => (
               <tr key={p._id} style={{ background: selected.has(p._id) ? '#f0f7ff' : undefined }}>
                 <td className="cb-col"><input type="checkbox" checked={selected.has(p._id)} onChange={() => toggleSelect(p._id)} style={{ cursor:'pointer' }} /></td>
                 <td style={{ fontWeight:'var(--p-font-weight-medium)' }}>{p.name}</td>
                 <td className="td-muted">{p.clientName || '—'}</td>
-                <td className="td-muted">{p.employee?.name || '—'}</td>
+                <td className="td-muted">{(p.employees?.length ? p.employees.map((e: any) => e?.name) : [p.employee?.name]).filter(Boolean).join(', ') || '—'}</td>
                 <td style={{ minWidth:140 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'var(--p-space-200)' }}>
                     <div style={{ flex:1, height:6, background:'var(--p-border)', borderRadius:3, overflow:'hidden' }}>
@@ -133,6 +145,7 @@ export default function AdminProjectsPage() {
                     <span style={{ fontSize:'var(--p-font-size-275)', color:'var(--p-text-secondary)', flexShrink:0 }}>{p.progress||0}%</span>
                   </div>
                 </td>
+                <td className="td-num td-muted">{taskCount(p._id)}</td>
                 <td className="td-num td-muted">{fmtAmt(p.value, p.currency)}</td>
                 <td className="td-muted">{p.due ? new Date(p.due).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</td>
                 <td><span className={`badge ${SB[p.status]||'badge-draft'}`}>{SL[p.status]||p.status}</span></td>
@@ -147,8 +160,8 @@ export default function AdminProjectsPage() {
           </tbody>
         </table>)}
         <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
-        <div className="p-table-footer">{filtered.length} project{filtered.length!==1?'s':''}{selected.size>0?` · ${selected.size} selected`:''}</div>
-      </div>
+        <div className="p-table-footer">{paginated.length} project{filtered.length!==1?'s':''}{selected.size>0?` · ${selected.size} selected`:''}</div>
+        </div>
 
       {modal && (
         <div className="p-modal-bg open" onClick={() => setModal(false)}>
@@ -156,12 +169,25 @@ export default function AdminProjectsPage() {
             <div className="p-modal-hd"><h3>{editId ? 'Edit project' : 'New project'}</h3><button className="p-modal-x" onClick={() => setModal(false)}><i className="ti ti-x" /></button></div>
             <div className="p-modal-body">
               <div className="p-field"><label className="p-label">Project Name *</label><input className="p-input" value={form.name} onChange={e => setForm(f => ({...f,name:e.target.value}))} placeholder="e.g. Website redesign" autoFocus /></div>
-              <div className="p-grid2">
-                <div className="p-field"><label className="p-label">Client</label>
-                  <select className="p-input" value={form.clientName} onChange={e => setForm(f => ({...f,clientName:e.target.value}))}><option value="">Select…</option>{CLIENTS.map(c => <option key={c}>{c}</option>)}</select>
-                </div>
-                <div className="p-field"><label className="p-label">Assign To</label>
-                  <select className="p-input" value={form.employee} onChange={e => setForm(f => ({...f,employee:e.target.value}))}><option value="">Unassigned</option>{employees.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}</select>
+              <div className="p-field"><label className="p-label">Client</label>
+                <select className="p-input" value={form.clientName} onChange={e => { const name=e.target.value; const cl=clients.find((x:any)=>x.name===name); setForm(f => ({...f, clientName:name, currency: cl?.currency || f.currency })); }}>
+                  <option value="">Select…</option>
+                  {clients.map((c: any) => <option key={c._id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="p-field">
+                <label className="p-label">Assign Employees <span style={{ color:'var(--p-text-secondary)', fontWeight:400 }}>(1 or many)</span></label>
+                <div style={{ border:'.0625rem solid var(--p-border)', borderRadius:'var(--p-border-radius-150)', maxHeight:140, overflowY:'auto' }}>
+                  {employees.map((e: any) => (
+                    <label key={e._id} style={{ display:'flex', alignItems:'center', gap:'var(--p-space-200)', padding:'var(--p-space-200) var(--p-space-300)', cursor:'pointer', borderBottom:'.0625rem solid var(--p-border-subdued)', fontSize:'var(--p-font-size-325)' }}>
+                      <input type="checkbox" checked={form.employees.includes(e._id)}
+                        onChange={() => setForm(f => ({ ...f, employees: f.employees.includes(e._id) ? f.employees.filter(x => x !== e._id) : [...f.employees, e._id] }))}
+                        style={{ cursor:'pointer' }} />
+                      <span style={{ flex:1 }}>{e.name}</span>
+                      <span style={{ color:'var(--p-text-secondary)', fontSize:'var(--p-font-size-275)' }}>{e.position||'Employee'}</span>
+                    </label>
+                  ))}
+                  {employees.length===0 && <div style={{ padding:'var(--p-space-300)', color:'var(--p-text-secondary)', fontSize:'var(--p-font-size-325)' }}>No employees found</div>}
                 </div>
               </div>
               <div className="p-grid2">
@@ -172,7 +198,7 @@ export default function AdminProjectsPage() {
               </div>
               <div className="p-field"><label className="p-label">Progress ({form.progress}%)</label><input className="p-input" type="range" min={0} max={100} value={form.progress} onChange={e => setForm(f => ({...f,progress:+e.target.value}))} /></div>
               <div className="p-grid2">
-                <div className="p-field"><label className="p-label">Value</label><input className="p-input" type="number" value={form.value} onChange={e => setForm(f => ({...f,value:+e.target.value}))} /></div>
+                <div className="p-field"><label className="p-label">Project Value <span style={{ color:'var(--p-text-secondary)', fontWeight:400 }}>(admin-only — hidden from employees)</span></label><input className="p-input" type="number" value={form.value} onChange={e => setForm(f => ({...f,value:+e.target.value}))} /></div>
                 <div className="p-field"><label className="p-label">Currency</label>
                   <select className="p-input" value={form.currency} onChange={e => setForm(f => ({...f,currency:e.target.value}))}><option>LKR</option><option>AUD</option><option>USD</option></select>
                 </div>

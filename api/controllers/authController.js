@@ -1,7 +1,14 @@
 const User = require('../models/User');
 const { signToken } = require('../middleware/auth');
 const { OAuth2Client } = require('google-auth-library');
-const { Activity } = require('../models/models');
+const { Activity, Settings } = require('../models/models');
+
+const getApprovalMode = async () => {
+  try {
+    const doc = await Settings.findOne({ key: 'app' });
+    return doc?.value?.approvalMode || 'email-admin';
+  } catch { return 'email-admin'; }
+};
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -20,9 +27,19 @@ exports.register = async (req, res) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Email already registered' });
 
-    const user = await User.create({ name, email, password, role: role === 'admin' ? 'admin' : 'employee' });
+    // Account approval mode (Settings → Preferences): admin approval keeps new accounts pending
+    const mode = await getApprovalMode();
+    const needsApproval = mode === 'email-admin' || mode === 'admin-only';
+    const user = await User.create({
+      name, email, password,
+      role: role === 'admin' ? 'admin' : 'employee',
+      status: needsApproval ? 'pending' : 'active',
+    });
     await logActivity('User registered', user, user.email);
 
+    if (needsApproval) {
+      return res.status(201).json({ pending: true, message: 'Account created — awaiting admin approval before you can sign in.' });
+    }
     const token = signToken(user._id);
     res.status(201).json({ token, user: user.toPublic() });
   } catch (err) {
@@ -40,6 +57,8 @@ exports.login = async (req, res) => {
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    if (user.status === 'pending')  return res.status(403).json({ error: 'Your account is awaiting admin approval.' });
+    if (user.status === 'inactive') return res.status(403).json({ error: 'Your account has been deactivated.' });
 
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });

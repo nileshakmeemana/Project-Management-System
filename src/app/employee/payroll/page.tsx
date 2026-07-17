@@ -1,15 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { apiCall, getUser } from '@/lib/api';
+import TableSkeleton, { StatRowSkeleton } from '@/components/TableSkeleton';
+import { downloadPayslipPDF, getPdfBiz, BizDetails } from '@/lib/pdf';
+import { PayslipPreview } from '@/components/DocPreviews';
+import PeriodFilter, { DateRange } from '@/components/PeriodFilter';
+import { fmtAmt, fmtDate, usePrefs, toBase, fmtBase, convert } from '@/lib/prefs';
 
-const BUSINESS = { name:'Designer Craft', address:'Business Address, Sri Lanka', email:'hello@designercraft.local', phone:'+94 77 000 0000', authorized:'Nilesh Akmeemana', authPosition:'Owner / Manager', note:'This payslip is issued for the pay period stated above and serves as a record of approved payment.' };
 
-const fmtAmt = (v: number, c = 'LKR') => {
-  try { return new Intl.NumberFormat('en-US',{style:'currency',currency:c,maximumFractionDigits:2}).format(v||0); }
-  catch { return `${c} ${(v||0).toFixed(2)}`; }
-};
 
 export default function PayrollPage() {
+  usePrefs(); // re-render on currency / date-format changes
   const user = getUser();
   const [tasks, setTasks]     = useState<any[]>([]);
   const [payslips, setPayslips] = useState<any[]>([]);
@@ -17,6 +18,10 @@ export default function PayrollPage() {
   const [config, setConfig]   = useState({ currency: user?.currency||'LKR', bonus:0, deductions:0, payType: user?.payType||'Per Task' });
   const [generating, setGenerating] = useState(false);
   const [preview, setPreview] = useState<any>(null);
+  const [period, setPeriod]   = useState<DateRange>({ preset:'all', label:'All time' });
+  const [projects, setProjects] = useState<any[]>([]);
+  const [projectId, setProjectId] = useState('');
+  const [biz, setBiz]         = useState<BizDetails>({ name:'Designer Craft' });
 
   useEffect(() => {
     Promise.all([
@@ -26,10 +31,23 @@ export default function PayrollPage() {
       setTasks(t.tasks||[]);
       setPayslips(p.payslips||[]);
     }).finally(() => setLoading(false));
+    getPdfBiz(apiCall).then(setBiz); // payslip settings + business details drive the preview & PDF
+    apiCall('GET','/projects').then(d=>setProjects(d.projects||[])).catch(()=>{});
   }, []);
 
-  const approved  = tasks.filter(t => ['Approved','Paid'].includes(t.status) && t.currency === config.currency);
-  const gross     = approved.reduce((s,t) => s+(t.approvedAmount||t.requestedAmount||0),0);
+  const inPeriod = (t: any) => {
+    if (!period.start) return true;
+    const d = new Date(t.dateCompleted || t.createdAt);
+    if (isNaN(+d)) return false;
+    return d >= period.start && (!period.end || d <= period.end);
+  };
+  const selProject = projects.find((p: any) => p._id === projectId);
+  const inProject = (t: any) => !projectId
+    || (t.projects||[]).some((x: any) => (x?._id||x) === projectId)
+    || (selProject && (t.projectNames||[]).includes(selProject.name));
+  // Approved/paid tasks in the period (and project, if chosen) — ANY currency; converted below
+  const approved  = tasks.filter(t => ['Approved','Paid'].includes(t.status) && inPeriod(t) && inProject(t));
+    const gross = approved.reduce((s,t)=>s+convert(t.approvedAmount||t.requestedAmount||0, t.currency||'LKR', config.currency),0);
   const net       = gross + Number(config.bonus) - Number(config.deductions);
   const hours     = approved.reduce((s,t) => s+(t.hours||0),0);
   const avgRate   = hours ? gross/hours : 0;
@@ -38,32 +56,73 @@ export default function PayrollPage() {
     setGenerating(true);
     try {
       const now = new Date();
-      const period = `${now.toLocaleString('default',{month:'long'})} ${now.getFullYear()}`;
+      const periodLabel = `${period.preset === 'all'
+        ? `${now.toLocaleString('default',{month:'long'})} ${now.getFullYear()}`
+        : period.label}${selProject ? ` · ${selProject.name}` : ''}`;
       const d = await apiCall('POST', '/payroll/generate', {
-        period, currency: config.currency, bonus: config.bonus, deductions: config.deductions,
-        payType: config.payType, businessDetails: BUSINESS,
+        period: periodLabel,
+        periodStart: period.start || undefined, periodEnd: period.end || undefined,
+        projectId: projectId || undefined, projectName: selProject?.name,
+        currency: config.currency, bonus: config.bonus, deductions: config.deductions,
+        payType: config.payType,
       });
       setPreview(d.payslip);
-      setPayslips(p => [d.payslip, ...p]);
-    } catch (err: any) { alert(err.message); }
+      setPayslips(p => [d.payslip, ...p.filter(x => x._id !== d.replaced)]);
+      await downloadPayslipPDF(d.payslip, biz);
+    } catch (err: any) {
+      // Already generated for this period? Offer to generate again (replaces the old one).
+      if (String(err.message||'').includes('already generated') && confirm(`${err.message}
+
+Generate again and replace it?`)) {
+        try {
+          const now2 = new Date();
+          const label2 = `${period.preset === 'all' ? `${now2.toLocaleString('default',{month:'long'})} ${now2.getFullYear()}` : period.label}${selProject ? ` · ${selProject.name}` : ''}`;
+          const d2 = await apiCall('POST', '/payroll/generate', {
+            period: label2, periodStart: period.start || undefined, periodEnd: period.end || undefined,
+            projectId: projectId || undefined, projectName: selProject?.name,
+            currency: config.currency, bonus: config.bonus, deductions: config.deductions, payType: config.payType,
+            regenerate: true,
+          });
+          setPreview(d2.payslip);
+          setPayslips(p => [d2.payslip, ...p.filter(x => x._id !== d2.replaced)]);
+          await downloadPayslipPDF(d2.payslip, biz);
+        } catch (e2: any) { alert(e2.message); }
+      } else if (!String(err.message||'').includes('already generated')) alert(err.message);
+    }
     finally { setGenerating(false); }
   };
 
-  const printPayslip = () => {
-    const content = document.getElementById('payslip-preview')?.innerHTML || '';
-    const w = window.open('','_blank');
-    if (!w) return;
-    w.document.write(`<html><head><title>Payslip — ${user?.name}</title><style>body{font-family:Inter,sans-serif;padding:24px;background:#fff;color:#303030}table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #e3e3e3}.td-num{text-align:right}</style></head><body>${content}<script>window.print()<\/script></body></html>`);
-    w.document.close();
+  // Download a payslip as a proper PDF (uses the admin's Payslip Settings + site logo)
+  const downloadSlip = async (slip?: any) => {
+    let target = slip || preview || payslips[0];
+    if (!target) { alert('Generate a payslip first.'); return; }
+    if (!Array.isArray(target.tasks) || typeof target.tasks[0] === 'string') {
+      try { target = (await apiCall('GET', `/payroll/${target._id}`)).payslip; } catch {}
+    }
+    await downloadPayslipPDF(target, await getPdfBiz(apiCall));
   };
 
-  if (loading) return <div style={{ padding:'4rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</div>;
+  if (loading) return (
+    <div className="page-content">
+      <div className="page-hero"><div className="page-hero-left"><h2>Payroll Report</h2></div></div>
+      <StatRowSkeleton />
+      <div className="p-table-wrap"><TableSkeleton rows={6} cols={5} /></div>
+    </div>
+  );
 
   return (
     <div className="page-content">
       <div className="page-hero">
         <div className="page-hero-left"><h2>Payroll Report</h2><p>Payslips use approved/paid tasks only, keeping each task in its payment currency</p></div>
-        <div className="page-hero-right"><button className="btn-primary" onClick={printPayslip}><i className="ti ti-printer" /> Print / PDF</button></div>
+        <div className="page-hero-right">
+          <select className="btn-secondary" style={{height:'2rem',fontSize:'var(--p-font-size-325)',padding:'0 var(--p-space-300)',cursor:'pointer',boxShadow:'var(--p-shadow-button)',maxWidth:180}}
+            value={projectId} onChange={e=>setProjectId(e.target.value)} title="Generate a payslip for one project only">
+            <option value="">All projects</option>
+            {projects.map((p: any)=><option key={p._id} value={p._id}>{p.name}</option>)}
+          </select>
+          <PeriodFilter id="emp-payroll" onChange={setPeriod} />
+          <button className="btn-primary" onClick={()=>downloadSlip()}><i className="ti ti-download" /> Download PDF</button>
+        </div>
       </div>
 
       {/* Calculator */}
@@ -97,108 +156,31 @@ export default function PayrollPage() {
 
       {/* Stat cards */}
       <div className="stat-row" style={{ marginBottom:'var(--p-space-400)' }}>
-        <div className="stat-card"><div className="stat-label"><i className="ti ti-currency-dollar" /> Total Requested</div><div className="stat-value">{fmtAmt(tasks.reduce((s,t)=>s+(t.requestedAmount||0),0),config.currency)}</div></div>
+        <div className="stat-card"><div className="stat-label"><i className="ti ti-currency-dollar" /> Total Requested</div><div className="stat-value">{fmtBase(tasks.reduce((s,t)=>s+toBase(t.requestedAmount||0,t.currency),0))}</div></div>
         <div className="stat-card"><div className="stat-label"><i className="ti ti-circle-check" /> Total Approved</div><div className="stat-value up">{fmtAmt(gross,config.currency)}</div></div>
         <div className="stat-card"><div className="stat-label"><i className="ti ti-clock" /> Pending Count</div><div className="stat-value">{tasks.filter(t=>t.status==='Pending Review').length}</div></div>
         <div className="stat-card"><div className="stat-label"><i className="ti ti-checks" /> Approved Count</div><div className="stat-value">{approved.length}</div></div>
       </div>
 
-      {/* Payslip preview */}
+      {/* Payslip preview — same template used for the PDF; reflects Payslip Settings */}
       <div className="p-card">
         <div className="p-card-header">
           <div className="p-card-title"><i className="ti ti-file-text" /> <span className="sec-t">Payslip Preview</span></div>
-          <div className="p-card-actions"><button className="btn-secondary" onClick={printPayslip}><i className="ti ti-printer" /> Print</button></div>
+          <div className="p-card-actions" style={{ display:'flex', alignItems:'center', gap:'var(--p-space-200)' }}>
+            <span className="badge badge-draft">{period.preset==='all' ? 'Current month' : period.label}{selProject?` · ${selProject.name}`:''}</span>
+            <button className="btn-secondary" onClick={()=>downloadSlip()}><i className="ti ti-download" /> Download PDF</button>
+          </div>
         </div>
         <div className="p-card-body" id="payslip-preview">
-          <div style={{ border:'.0625rem solid var(--p-border)', borderRadius:'var(--p-border-radius-200)', overflow:'hidden' }}>
-            {/* Header */}
-            <div style={{ background:'var(--p-fill-brand)', color:'#fff', padding:'var(--p-space-500)', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-              <div>
-                <div style={{ fontWeight:600, fontSize:'var(--p-font-size-350)' }}>{BUSINESS.name}</div>
-                <div style={{ fontSize:'var(--p-font-size-300)', opacity:.8, marginTop:4 }}>{BUSINESS.address}</div>
-                <div style={{ fontSize:'var(--p-font-size-300)', opacity:.8 }}>{BUSINESS.email} · {BUSINESS.phone}</div>
-              </div>
-              <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:'var(--p-font-size-275)', opacity:.7, textTransform:'uppercase', letterSpacing:'.08em' }}>Employee Payslip</div>
-                <div style={{ fontSize:'1.25rem', fontWeight:600 }}>PAYSLIP</div>
-                <div style={{ fontSize:'var(--p-font-size-300)', opacity:.8 }}>Generated {new Date().toLocaleDateString('en-LK')}</div>
-              </div>
-            </div>
-            {/* Summary strip */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', background:'var(--p-surface-secondary)', borderBottom:'.0625rem solid var(--p-border)' }}>
-              {[['Net Pay',fmtAmt(net,config.currency)],['Pay Type',config.payType],['Currency',config.currency],['Approved Tasks',approved.length]].map(([l,v])=>(
-                <div key={String(l)} style={{ padding:'var(--p-space-300) var(--p-space-400)', borderRight:'.0625rem solid var(--p-border)' }}>
-                  <div style={{ fontSize:'var(--p-font-size-275)', color:'var(--p-text-secondary)' }}>{l}</div>
-                  <div style={{ fontWeight:600, fontSize:'var(--p-font-size-350)' }}>{v}</div>
-                </div>
-              ))}
-            </div>
-            {/* Employee info */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderBottom:'.0625rem solid var(--p-border)' }}>
-              <div style={{ padding:'var(--p-space-400)', borderRight:'.0625rem solid var(--p-border)' }}>
-                <div style={{ fontWeight:600, marginBottom:'var(--p-space-200)' }}>Employee Information</div>
-                <p style={{ fontSize:'var(--p-font-size-325)', lineHeight:1.8, color:'var(--p-text-secondary)' }}>
-                  <b style={{ color:'var(--p-text)' }}>Name:</b> {user?.name}<br/>
-                  <b style={{ color:'var(--p-text)' }}>ID:</b> {user?.employeeId}<br/>
-                  <b style={{ color:'var(--p-text)' }}>Position:</b> {user?.position||'—'}<br/>
-                  <b style={{ color:'var(--p-text)' }}>Email:</b> {user?.email}
-                </p>
-              </div>
-              <div style={{ padding:'var(--p-space-400)' }}>
-                <div style={{ fontWeight:600, marginBottom:'var(--p-space-200)' }}>Payment Information</div>
-                <p style={{ fontSize:'var(--p-font-size-325)', lineHeight:1.8, color:'var(--p-text-secondary)' }}>
-                  <b style={{ color:'var(--p-text)' }}>Pay Date:</b> {new Date().toLocaleDateString('en-LK')}<br/>
-                  <b style={{ color:'var(--p-text)' }}>Total Hours:</b> {hours.toFixed(2)}<br/>
-                  <b style={{ color:'var(--p-text)' }}>Avg Rate:</b> {fmtAmt(avgRate,config.currency)} / hr<br/>
-                  <b style={{ color:'var(--p-text)' }}>Pay Type:</b> {config.payType}
-                </p>
-              </div>
-            </div>
-            {/* Earnings table */}
-            <div style={{ padding:'var(--p-space-400)' }}>
-              <div style={{ fontWeight:600, marginBottom:'var(--p-space-300)' }}>Earnings</div>
-              <table className="p-table" style={{ marginBottom:'var(--p-space-400)' }}>
-                <thead><tr><th style={{textAlign:"left",minWidth:180}}>Description</th><th className="td-num">Units</th><th className="td-num">Rate</th><th className="td-num">Amount</th></tr></thead>
-                <tbody>
-                  {approved.length===0 && <tr><td colSpan={4} style={{ textAlign:'center', color:'var(--p-text-secondary)' }}>No approved tasks for {config.currency} in this period.</td></tr>}
-                  {approved.map(t => (
-                    <tr key={t._id}>
-                      <td>{t.title}<br/><small style={{ color:'var(--p-text-secondary)' }}>{t.clientName} · {t.category}</small></td>
-                      <td className="td-num">{(t.hours||0).toFixed(2)} hrs</td>
-                      <td className="td-num">{t.hours?fmtAmt((t.approvedAmount||t.requestedAmount)/t.hours,config.currency):'—'}</td>
-                      <td className="td-num">{fmtAmt(t.approvedAmount||t.requestedAmount,config.currency)}</td>
-                    </tr>
-                  ))}
-                  <tr style={{ fontWeight:600, borderTop:'.0625rem solid var(--p-border)' }}><td>Gross Earnings</td><td/><td/><td className="td-num">{fmtAmt(gross,config.currency)}</td></tr>
-                  {config.bonus > 0 && <tr><td>Bonus / Adjustment</td><td/><td/><td className="td-num">{fmtAmt(config.bonus,config.currency)}</td></tr>}
-                </tbody>
-              </table>
-              <div style={{ fontWeight:600, marginBottom:'var(--p-space-300)' }}>Deductions</div>
-              <table className="p-table" style={{ marginBottom:'var(--p-space-400)' }}>
-                <tbody>
-                  <tr><td>{config.deductions>0?'Deductions':'None'}</td><td className="td-num">{fmtAmt(config.deductions,config.currency)}</td></tr>
-                  <tr style={{ fontWeight:600 }}><td>Total Deductions</td><td className="td-num">{fmtAmt(config.deductions,config.currency)}</td></tr>
-                </tbody>
-              </table>
-              {/* Net pay */}
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', background:'var(--p-surface-secondary)', border:'.0625rem solid var(--p-border)', borderRadius:'var(--p-border-radius-200)', padding:'var(--p-space-400)', marginBottom:'var(--p-space-400)' }}>
-                <span style={{ fontWeight:600, fontSize:'var(--p-font-size-350)' }}>Final Net Pay</span>
-                <strong style={{ fontSize:'1.25rem', fontWeight:700 }}>{fmtAmt(net,config.currency)}</strong>
-              </div>
-              {/* Signatures */}
-              <div style={{ display:'flex', justifyContent:'flex-end', gap:'var(--p-space-800)', marginBottom:'var(--p-space-400)' }}>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ borderTop:'.0625rem solid var(--p-border-strong)', paddingTop:'var(--p-space-200)', fontSize:'var(--p-font-size-325)' }}>
-                    <b>{BUSINESS.authorized}</b><br/><small style={{ color:'var(--p-text-secondary)' }}>{BUSINESS.authPosition}</small>
-                  </div>
-                </div>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ borderTop:'.0625rem solid var(--p-border-strong)', paddingTop:'var(--p-space-200)', fontSize:'var(--p-font-size-325)', color:'var(--p-text-secondary)' }}>Employee Signature</div>
-                </div>
-              </div>
-              <p style={{ fontSize:'var(--p-font-size-275)', color:'var(--p-text-secondary)', fontStyle:'italic' }}>{BUSINESS.note}</p>
-            </div>
-          </div>
+          <PayslipPreview
+            biz={biz}
+            payslip={preview || {
+              period: period.preset==='all' ? `${new Date().toLocaleString('default',{month:'long'})} ${new Date().getFullYear()}` : period.label,
+              currency: config.currency, status: 'preview', createdAt: new Date(),
+              employee: { name: user?.name, employeeId: user?.employeeId, position: user?.position },
+              tasks: approved, grossAmount: gross, bonus: config.bonus, deductions: config.deductions, netAmount: net,
+            }}
+          />
         </div>
       </div>
 
@@ -207,7 +189,7 @@ export default function PayrollPage() {
         <div className="p-card" style={{ marginTop:'var(--p-space-400)' }}>
           <div className="p-card-header"><div className="p-card-title"><i className="ti ti-history" /> <span className="sec-t">Payslip History</span></div></div>
           <table className="p-table">
-            <thead><tr><th style={{textAlign:"left",minWidth:120}}>Period</th><th className="td-num">Gross</th><th className="td-num">Net Pay</th><th style={{textAlign:"left"}}>Currency</th><th style={{textAlign:"left"}}>Status</th></tr></thead>
+            <thead><tr><th style={{textAlign:"left",minWidth:120}}>Period</th><th className="td-num">Gross</th><th className="td-num">Net Pay</th><th style={{textAlign:"left"}}>Currency</th><th style={{textAlign:"left"}}>Status</th><th/></tr></thead>
             <tbody>
               {payslips.map(p=>(
                 <tr key={p._id}>
@@ -215,7 +197,8 @@ export default function PayrollPage() {
                   <td className="td-num td-muted">{fmtAmt(p.grossAmount,p.currency)}</td>
                   <td className="td-num" style={{ fontWeight:600 }}>{fmtAmt(p.netAmount,p.currency)}</td>
                   <td>{p.currency}</td>
-                  <td><span className={`badge ${p.status==='paid'?'badge-paid':p.status==='issued'?'badge-approved':'badge-draft'}`}>{p.status}</span></td>
+                  <td><span className={`badge ${p.status==='paid'?'badge-paid':p.status==='issued'?'badge-pending':'badge-draft'}`}>{p.status}</span></td>
+                  <td><button className="btn-secondary" style={{height:'1.75rem',fontSize:'var(--p-font-size-275)'}} onClick={()=>downloadSlip(p)}><i className="ti ti-download"/> PDF</button></td>
                 </tr>
               ))}
             </tbody>

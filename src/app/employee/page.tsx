@@ -3,15 +3,13 @@ import { EarningsOverviewChart, EarningsByStatusDonut } from '@/components/Chart
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiCall, getUser } from '@/lib/api';
+import TableSkeleton from '@/components/TableSkeleton';
+import { fmtAmt, fmtDate, usePrefs, toBase, fmtBase } from '@/lib/prefs';
 
-const fmtAmt = (v: number, c = 'LKR') => {
-  try { return new Intl.NumberFormat('en-US',{style:'currency',currency:c,maximumFractionDigits:0}).format(v||0); }
-  catch { return `${c} ${(v||0).toLocaleString()}`; }
-};
 const fmtTotals = (key: string, arr: any[]) => {
-  const t: Record<string,number> = {};
-  arr.forEach(x => { const c=x.currency||'LKR'; t[c]=(t[c]||0)+Number(x[key]||0); });
-  return Object.entries(t).map(([c,v])=>fmtAmt(v,c)).join(' + ') || '—';
+  // Sum every task converted from its own currency into the preferred currency
+  const total = arr.reduce((s, x) => s + toBase(Number(x[key] || 0), x.currency || 'LKR'), 0);
+  return arr.length ? fmtBase(total) : '—';
 };
 const BADGE: Record<string,string> = {
   'Pending Review':'badge-pending','Approved':'badge-paid','Paid':'badge-paid',
@@ -19,6 +17,7 @@ const BADGE: Record<string,string> = {
 };
 
 export default function EmployeeDashboard() {
+  usePrefs(); // re-render on currency / date-format changes
   const router = useRouter();
   const user = getUser();
   const [tasks, setTasks] = useState<any[]>([]);
@@ -99,7 +98,7 @@ export default function EmployeeDashboard() {
             <table className="p-table">
               <thead><tr><th style={{textAlign:"left",minWidth:160}}>Task</th><th style={{textAlign:"left"}}>Client</th><th className="td-num">Hours</th><th className="td-num">Requested</th><th style={{textAlign:"left"}}>Status</th></tr></thead>
               <tbody id="d-recent-tbody">
-                {loading && <tr><td colSpan={5} style={{ padding:'2rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</td></tr>}
+                {loading && <tr><td colSpan={5} style={{padding:0}}><TableSkeleton rows={5} cols={5} /></td></tr>}
                 {!loading && tasks.length === 0 && <tr><td colSpan={5} style={{ padding:'2rem', textAlign:'center', color:'var(--p-text-secondary)' }}>No tasks yet.</td></tr>}
                 {tasks.slice(0,5).map(t => (
                   <tr key={t._id}>

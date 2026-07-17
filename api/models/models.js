@@ -15,7 +15,8 @@ const projectSchema = new mongoose.Schema({
   name:     { type: String, required: true, trim: true },
   client:   { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
   clientName:{ type: String, default: '' },
-  employee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  employee:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },           // legacy single assignee
+  employees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],          // 1..n assignees
   status:   { type: String, enum: ['in-progress','completed','on-hold'], default: 'in-progress' },
   progress: { type: Number, min: 0, max: 100, default: 0 },
   value:    { type: Number, default: 0 },
@@ -73,10 +74,12 @@ const Activity = mongoose.model('Activity', activitySchema);
 
 // ── Deadline ─────────────────────────────────────
 const deadlineSchema = new mongoose.Schema({
-  title:    { type: String, required: true },
-  date:     { type: Date, required: true },
-  color:    { type: String, default: '#005bd3' },
-  employee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  title:     { type: String, required: true },
+  date:      { type: Date, required: true },
+  color:     { type: String, default: '#005bd3' },
+  employee:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },          // legacy single assignee
+  employees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],        // 1..n assignees
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 const Deadline = mongoose.model('Deadline', deadlineSchema);
 
@@ -87,4 +90,23 @@ const settingsSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Settings = mongoose.model('Settings', settingsSchema);
 
-module.exports = { Client, Project, Category, Payslip, Activity, Deadline, Settings };
+// ── Invoice ──────────────────────────────────────
+const invoiceSchema = new mongoose.Schema({
+  number:      { type: String, required: true, unique: true },
+  project:     { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+  projectName: { type: String, default: '' },
+  clientName:  { type: String, default: '' },
+  description: { type: String, default: '' },
+  amount:      { type: Number, default: 0 },                        // base project value
+  addons:      [{ description: String, amount: Number }],           // extra line items
+  total:       { type: Number, default: 0 },
+  currency:    { type: String, enum: ['LKR','AUD','USD'], default: 'LKR' },
+  status:      { type: String, enum: ['draft','sent','paid','overdue'], default: 'draft' },
+  date:        { type: Date, default: Date.now },
+  dueDate:     { type: Date },
+  paidAt:      { type: Date },
+  createdBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+}, { timestamps: true });
+const Invoice = mongoose.model('Invoice', invoiceSchema);
+
+module.exports = { Client, Project, Category, Payslip, Activity, Deadline, Settings, Invoice };

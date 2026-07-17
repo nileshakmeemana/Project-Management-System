@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import '@/styles/auth.css';
 import { apiCall, setSession, getToken, getUser } from '@/lib/api';
+import { LOGO_URL } from '@/lib/branding';
 
 const GoogleSVG = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -108,7 +109,7 @@ export default function AuthPage() {
   return (
     <>
       <div className="auth-logo" style={{ justifyContent:'center', marginBottom:'var(--p-space-600)' }}>
-        <img src="YOUR_LOGO_URL_HERE" alt="Designer Craft" style={{ width:160, height:'auto', objectFit:'contain', display:'block' }}
+        <img src={LOGO_URL} alt="Designer Craft" style={{ width:160, height:'auto', objectFit:'contain', display:'block' }}
           onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
       </div>
 

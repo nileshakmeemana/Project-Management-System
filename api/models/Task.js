@@ -12,9 +12,16 @@ const taskSchema = new mongoose.Schema({
   currency:        { type: String, enum: ['LKR','AUD','USD'], default: 'LKR' },
   status: {
     type: String,
-    enum: ['Pending Review','Approved','Rejected','Changes Requested','Paid','Archived'],
+    enum: ['Assigned','Accepted','Declined','Pending Review','Approved','Rejected','Changes Requested','Paid','Archived'],
     default: 'Pending Review'
   },
+  projects:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
+  projectNames: [{ type: String }],
+  customFields: { type: mongoose.Schema.Types.Mixed, default: {} },
+  paidAt:       { type: Date },
+  assignedBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  acceptedAt:   { type: Date },
+  declinedAt:   { type: Date },
   description:  { type: String, default: '' },
   workLink:     { type: String, default: '' },
   adminNote:    { type: String, default: '' },

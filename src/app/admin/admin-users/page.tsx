@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { apiCall } from '@/lib/api';
+import { useData } from '@/hooks/useData';
 import BulkBar from '@/components/BulkBar';
 import Pagination from '@/components/Pagination';
+import TableSkeleton from '@/components/TableSkeleton';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 export default function AdminUsersPage() {
   const [admins,   setAdmins]   = useState<any[]>([]);
@@ -44,7 +46,7 @@ export default function AdminUsersPage() {
 
   const bulkRemove = async () => {
     if (!confirm(`Remove ${selected.size} admin(s)?`)) return;
-    for (const id of Array.from(selected)) { try { await apiCall('DELETE', `/users/${id}`); } catch {} }
+    for (const id of selected) { try { await apiCall('DELETE', `/users/${id}`); } catch {} }
     await fetchAdmins(); setSelected(new Set()); showToast('Removed.');
   };
 
@@ -60,7 +62,7 @@ export default function AdminUsersPage() {
           onClear={() => setSelected(new Set())}
         />
 
-        {loading ? <div style={{ padding:'3rem', textAlign:'center', color:'var(--p-text-secondary)' }}>Loading…</div> : (
+        {loading ? <TableSkeleton rows={6} cols={4} /> : (
         <table className="p-table">
           <thead><tr>
             <th className="cb-col"><input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked; }} onChange={e => selectAll(e.target.checked)} style={{ cursor:'pointer' }} /></th>
@@ -95,7 +97,7 @@ export default function AdminUsersPage() {
         </table>)}
         <Pagination page={page} total={admins.length} pageSize={PAGE_SIZE} onChange={setPage} />
         <div className="p-table-footer">{admins.length} admin{admins.length!==1?'s':''}{selected.size>0?` · ${selected.size} selected`:''}</div>
-      </div>
+        </div>
 
       {modal && (
         <div className="p-modal-bg open" onClick={() => setModal(false)}>
