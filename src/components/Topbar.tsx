@@ -80,7 +80,7 @@ export default function Topbar({ searchPages }: TopbarProps) {
       <div className="topbar-logo" style={{ cursor:'default', gap:0, pointerEvents:'none' }}>
         {/* IMPORTANT: logo src must be root-absolute (start with "/") or a full https:// URL.
             A relative path breaks on nested routes like /admin/tasks after a refresh. */}
-        <img src={LOGO_URL} alt="Designer Craft"
+        <img src="/logo.png" alt="Designer Craft"
           style={{ height:80, width:80, objectFit:'contain', display:'block', margin:'-12px -4px' }}
           onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
       </div>
