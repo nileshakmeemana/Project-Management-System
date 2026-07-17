@@ -35,6 +35,46 @@ export default function AuthPage() {
   const [regEye2, setRegEye2] = useState(false);
   const [toast, setToast] = useState('');
   const redirectDone = useRef(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+  const [googleReady, setGoogleReady] = useState(false);
+
+  // ── Google Sign-In (Google Identity Services) ────────────────────────────
+  const onGoogleCredential = async (resp: any) => {
+    setLoginError(''); setLoginSuccess('');
+    try {
+      const data = await apiCall('POST', '/auth/google', { credential: resp.credential });
+      setSession(data.token, data.user);
+      setLoginSuccess(`Welcome, ${data.user.name.split(' ')[0]}!`);
+      setTimeout(() => router.replace(data.user.role === 'admin' ? '/admin' : '/employee'), 600);
+    } catch (err: any) {
+      setLoginError(err.message || 'Google sign-in failed.');
+    }
+  };
+
+  useEffect(() => {
+    if (!mounted) return; // page renders null until mounted — wait for the real DOM
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) return; // no client ID configured — keep fallback button
+
+    const init = () => {
+      const g = (window as any).google;
+      if (!g?.accounts?.id || !googleBtnRef.current) return;
+      g.accounts.id.initialize({ client_id: clientId, callback: onGoogleCredential });
+      g.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline', size: 'large', text: 'continue_with',
+        width: googleBtnRef.current.offsetWidth || 340,
+      });
+      setGoogleReady(true);
+    };
+
+    if ((window as any).google?.accounts?.id) { init(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.defer = true;
+    s.onload = init;
+    document.body.appendChild(s);
+  }, [mounted]);
 
   useEffect(() => {
     setMounted(true);
@@ -109,7 +149,7 @@ export default function AuthPage() {
   return (
     <>
       <div className="auth-logo" style={{ justifyContent:'center', marginBottom:'var(--p-space-600)' }}>
-        <img src="/authlogo.png" alt="Designer Craft" style={{ width:160, height:'auto', objectFit:'contain', display:'block' }}
+        <img src={LOGO_URL} alt="Designer Craft" style={{ width:160, height:'auto', objectFit:'contain', display:'block' }}
           onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
       </div>
 
@@ -159,9 +199,13 @@ export default function AuthPage() {
 
             <div className="divider">or</div>
 
-            <button type="button" className="btn-google" onClick={() => alert('Configure NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local')}>
-              <GoogleSVG /> Continue with Google
-            </button>
+            {/* Official Google button renders here when NEXT_PUBLIC_GOOGLE_CLIENT_ID is set */}
+            <div ref={googleBtnRef} style={{ display: googleReady ? 'flex' : 'none', justifyContent: 'center' }} />
+            {!googleReady && (
+              <button type="button" className="btn-google" onClick={() => showToast('Google Sign-In is not configured yet.')}>
+                <GoogleSVG /> Continue with Google
+              </button>
+            )}
 
             <div className="demo-box">
               <b>Demo accounts</b>
