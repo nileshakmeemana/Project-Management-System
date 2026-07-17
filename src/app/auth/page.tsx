@@ -149,7 +149,7 @@ export default function AuthPage() {
   return (
     <>
       <div className="auth-logo" style={{ justifyContent:'center', marginBottom:'var(--p-space-600)' }}>
-        <img src="authlogo.png" alt="Designer Craft" style={{ width:160, height:'auto', objectFit:'contain', display:'block' }}
+        <img src="/authlogo.png" alt="Designer Craft" style={{ width:160, height:'auto', objectFit:'contain', display:'block' }}
           onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }} />
       </div>
 
